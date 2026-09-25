@@ -1,8 +1,9 @@
-import { render, waitFor } from '@testing-library/react'
+import { fireEvent, render, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const previewMocks = vi.hoisted(() => ({
-  loadAttachmentPreview: vi.fn()
+  loadAttachmentPreview: vi.fn(),
+  showItemInFolder: vi.fn()
 }))
 
 vi.mock('./attachmentPreviewLoader', () => previewMocks)
@@ -10,6 +11,10 @@ vi.mock('./attachmentPreviewLoader', () => previewMocks)
 import { MarkdownText, MarkdownWorkspaceProjectProvider } from './MarkdownText'
 
 beforeEach(() => {
+  Object.defineProperty(window, 'gale', {
+    configurable: true,
+    value: { files: { showItemInFolder: previewMocks.showItemInFolder.mockReset().mockResolvedValue('') } }
+  })
   previewMocks.loadAttachmentPreview.mockReset().mockResolvedValue({
     path: '/workspace/images/avatar.png',
     mimeType: 'image/png',
@@ -18,6 +23,32 @@ beforeEach(() => {
 })
 
 describe('Markdown workspace images', () => {
+  it.each([false, true])('reveals the resolved image file while original loading is pending: %s', async (pending) => {
+    const resolvedPath = 'D:\\workspace\\images\\avatar.png'
+    previewMocks.loadAttachmentPreview.mockImplementation(async (_path, options) => {
+      if (pending && options.mode === 'original') return new Promise(() => {})
+      return {
+        path: resolvedPath,
+        mimeType: 'image/png',
+        src: options.mode === 'original' ? 'anas-image://local/avatar' : 'data:image/png;base64,AQ=='
+      }
+    })
+    const view = render(
+      <MarkdownWorkspaceProjectProvider projectId="project-a">
+        <MarkdownText text="![Avatar](images/avatar.png)" />
+      </MarkdownWorkspaceProjectProvider>
+    )
+
+    fireEvent.click(await view.findByRole('button', { name: 'Avatar' }))
+    if (!pending) {
+      await waitFor(() => expect(view.getByRole('dialog').querySelector('img'))
+        .toHaveAttribute('src', 'anas-image://local/avatar'))
+    }
+    fireEvent.click(await view.findByRole('button', { name: 'chat.show_attachment_in_folder' }))
+
+    await waitFor(() => expect(previewMocks.showItemInFolder).toHaveBeenCalledWith(resolvedPath))
+  })
+
   it('loads a relative image through the current project context', async () => {
     const view = render(
       <MarkdownWorkspaceProjectProvider projectId="project-a">

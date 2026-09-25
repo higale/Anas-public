@@ -28,6 +28,8 @@ async function verifyAttachmentPreviews(launchApplication) {
   if (dirname(root) !== tmpdir() || !basename(root).startsWith('anas-image-preview-e2e-')) throw new Error('Unexpected test directory.')
   const photo = join(root, '照片 #1 %.bmp')
   const large = join(root, '超大 # %.bmp')
+  const generatedName = 'generated 猫.bmp'
+  const generated = join(root, generatedName)
   const profile = join(root, 'profile')
   let application
   let requests = 0
@@ -44,13 +46,15 @@ async function verifyAttachmentPreviews(launchApplication) {
       requests += 1
       response.writeHead(200, { 'content-type': 'application/json' })
       response.end(JSON.stringify({ id: 'photo-response', object: 'chat.completion', created: 1, model: input.model,
-        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: 'Photo received.' } }],
+        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant',
+          content: `Photo received.\n\n![Generated cat](${encodeURIComponent(generatedName)})` } }],
         usage: { prompt_tokens: 2000, completion_tokens: 5, total_tokens: 2005 } }))
     })().catch(error => { errors.push(String(error)); response.writeHead(400); response.end(String(error)) })
   })
   try {
     await writeFile(photo, bitmap(2048, 1707))
     await writeFile(large, bitmap(3072, 3000))
+    await writeFile(generated, bitmap(800, 600))
     await mkdir(join(profile, 'config'), { recursive: true })
     await writeFile(join(profile, 'config', 'settings.json'), JSON.stringify({ ...settingsDefaults, language: 'en' }))
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
@@ -58,6 +62,18 @@ async function verifyAttachmentPreviews(launchApplication) {
     const page = await application.firstWindow()
     page.setDefaultTimeout(15_000)
     await expect(page.locator('[data-agent-composer-input]')).toBeVisible()
+    const projectUpdate = await page.evaluate(async sourceFolder => {
+      const project = (await globalThis.gale.projects.list()).find(item => item.id === 'default-workspace')
+      return globalThis.gale.projects.update(project.id, { ...project, sourceFolders: [sourceFolder] })
+    }, root)
+    assert.equal(projectUpdate.status, 'ok')
+    await page.reload()
+    await expect(page.locator('[data-agent-composer-input]')).toBeVisible()
+    await application.evaluate(({ shell }) => {
+      globalThis.__anasRevealedImages = []
+      // Keep the real preload/IPC validation; intercept only the OS file manager.
+      shell.showItemInFolder = path => { globalThis.__anasRevealedImages.push(path) }
+    })
     await page.evaluate(async port => {
       const api = globalThis.gale.config
       const config = await api.saveModelProvider({ name: 'Preview test', protocol: 'openai_chat_completions',
@@ -74,6 +90,8 @@ async function verifyAttachmentPreviews(launchApplication) {
     await page.locator('.attachment-grid-composer .attachment-open').click()
     const slide = page.locator('.yarl__slide_current .yarl__slide_image')
     await expect.poll(() => slide.evaluate(image => image.naturalWidth)).toBe(2048)
+    await page.locator('.attachment-lightbox-folder-button').click()
+    assert.deepEqual(await application.evaluate(() => globalThis.__anasRevealedImages), [photo])
     await page.keyboard.press('Escape')
     await page.locator('[data-agent-composer-input]').fill('Inspect the photo.')
     await page.getByRole('button', { name: 'Send', exact: true }).click()
@@ -82,6 +100,14 @@ async function verifyAttachmentPreviews(launchApplication) {
     await expect(slide).toHaveAttribute('src', /^anas-image:/)
     await expect.poll(() => slide.evaluate(image => image.naturalWidth)).toBe(2048)
     await page.screenshot({ path: join(tmpdir(), 'anas-original-photo-preview.png') })
+    await page.keyboard.press('Escape')
+
+    await page.getByRole('button', { name: 'Generated cat', exact: true }).click()
+    await expect(slide).toHaveAttribute('src', /^anas-image:/)
+    await expect.poll(() => slide.evaluate(image => image.naturalWidth)).toBe(800)
+    await page.locator('.attachment-lightbox-folder-button').click()
+    await expect.poll(() => application.evaluate(() => globalThis.__anasRevealedImages)).toEqual([photo, generated])
+    await expect(page.getByText('Failed to open attachment.', { exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
 
     const largeResult = await page.evaluate(async path => {
@@ -97,7 +123,7 @@ async function verifyAttachmentPreviews(launchApplication) {
     assert.match(largeResult.rejected, /exceeds 25 MB/)
     assert.equal(requests, 1)
     assert.deepEqual(errors, [])
-    console.log('Attachment previews Electron E2E passed: 10 MiB photo before/after send at original resolution; preview over 25 MiB; sending limit retained.')
+    console.log('Attachment previews Electron E2E passed: original resolution; large image limits; reveal buttons for attachments and project-relative Markdown images.')
   } finally {
     await closeElectronTestApplication(application)
     server.closeAllConnections()

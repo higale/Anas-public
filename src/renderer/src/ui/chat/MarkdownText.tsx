@@ -4,6 +4,7 @@ import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
+import type { AttachmentPreview } from '@shared/types'
 import { NoFocusButton } from '../NoFocusButton'
 import { notice } from '../notice'
 import { loadAttachmentPreview } from './attachmentPreviewLoader'
@@ -130,8 +131,8 @@ function MarkdownImage({ src, alt, node: _node, onError, ...props }: MarkdownIma
   const { t } = useTranslation()
   const projectId = useContext(MarkdownWorkspaceProjectContext)
   const localPath = normalizeLocalImagePath(src)
-  const [thumbnail, setThumbnail] = useState<string | null>(null)
-  const [original, setOriginal] = useState<string | null>(null)
+  const [thumbnail, setThumbnail] = useState<AttachmentPreview | null>(null)
+  const [original, setOriginal] = useState<AttachmentPreview | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -168,7 +169,7 @@ function MarkdownImage({ src, alt, node: _node, onError, ...props }: MarkdownIma
       .then((result) => {
         if (canceled) return
         if (result?.src) {
-          setThumbnail(result.src)
+          setThumbnail(result)
         } else {
           setFailure(t('chat.image_preview_failed'))
         }
@@ -182,8 +183,8 @@ function MarkdownImage({ src, alt, node: _node, onError, ...props }: MarkdownIma
     }
   }, [localPath, projectId, src, t, visible])
 
-  const preview = visible ? (localPath ? thumbnail : src ?? null) : null
-  const lightboxSource = original ?? preview
+  const preview = visible ? (localPath ? thumbnail?.src : src ?? null) : null
+  const lightboxSource = original?.src ?? preview
 
   async function openImage(): Promise<void> {
     if (!lightboxSource) return
@@ -194,7 +195,7 @@ function MarkdownImage({ src, alt, node: _node, onError, ...props }: MarkdownIma
       notice.error(t('chat.image_preview_failed'))
       return null
     })
-    if (result?.src && sourceVersionRef.current === sourceVersion) setOriginal(result.src)
+    if (result?.src && sourceVersionRef.current === sourceVersion) setOriginal(result)
   }
 
   if (preview && !failure) {
@@ -219,7 +220,7 @@ function MarkdownImage({ src, alt, node: _node, onError, ...props }: MarkdownIma
           slides={lightboxSource ? [{
             src: lightboxSource,
             alt: alt ?? '',
-            path: localPath ?? undefined
+            path: original?.path ?? thumbnail?.path
           }] : []}
         />
       </span>
