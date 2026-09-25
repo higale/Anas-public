@@ -32,8 +32,7 @@
 
 ## 版本与发布
 
-- 首次源码快照推送到 `higale/Anas-public` 前，版本固定为 `3.0.0`；首次发布后删除这条临时规则。
-- 此后每次提交应用修改时，除非用户另有要求，用 `npm version patch --no-git-tag-version` 递增一次 `PATCH`，同步两个 package 文件。使用三段版本号，只有用户明确要求时才变更 `MINOR` 或 `MAJOR`。仅修改文档、注释或 Agent 规则不升版本。
+- 每次提交应用修改时，除非用户另有要求，用 `npm version patch --no-git-tag-version` 递增一次 `PATCH`，同步两个 package 文件。使用三段版本号，只有用户明确要求时才变更 `MINOR` 或 `MAJOR`。仅修改文档、注释或 Agent 规则不升版本。
 - 最终验证前确定提交范围和版本，按完整功能边界提交。公开仓库按[发布流程](docs/SOURCE_PUBLISHING.md)接收独立源码快照，不公开日常开发历史。
 
 ## 验证与交付
