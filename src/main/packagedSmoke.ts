@@ -93,8 +93,9 @@ export async function runPackagedSmoke(): Promise<void> {
     const terminalOutput = await runPreparedProcess({
       command: 'packaged PTY input probe', workingDir: documents, timeoutSec: 15,
       pty: { columns: 100, rows: 30 }, invocation: { executable: process.platform === 'win32' ? shell.executable : process.execPath,
+        // UTF-16 input selects .NET's native ReadConsoleW path, avoiding Windows console code-page conversion.
         args: process.platform === 'win32'
-          ? ['-NoLogo', '-NoProfile', '-Command', "[Console]::InputEncoding=[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); if([Console]::IsInputRedirected -or [Console]::IsOutputRedirected){exit 2}; Write-Output ANAS_PTY_READY; $line=[Console]::ReadLine(); Write-Output ('PTY_REPLY:'+$line)"]
+          ? ['-NoLogo', '-NoProfile', '-Command', "[Console]::InputEncoding=[Text.Encoding]::Unicode; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); if([Console]::IsInputRedirected -or [Console]::IsOutputRedirected){exit 2}; Write-Output ANAS_PTY_READY; $line=[Console]::ReadLine(); Write-Output ('PTY_REPLY:'+$line)"]
           : ['-e', `if(!process.stdin.isTTY||!process.stdout.isTTY)process.exit(2);process.stdin.once('data',v=>{console.log('PTY_REPLY:'+String(v).trim());process.exit(0)});console.log('ANAS_PTY_READY')`],
         windowsHide: true, env: { ELECTRON_RUN_AS_NODE: '1' } },
       logScope: 'packaged-smoke', successMessage: 'PTY smoke passed.', failureMessage: 'PTY smoke failed.',
