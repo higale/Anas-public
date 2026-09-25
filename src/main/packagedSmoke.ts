@@ -7,6 +7,7 @@ import https from 'node:https'
 import net from 'node:net'
 import tls from 'node:tls'
 import { configureDataRuntime } from './config/dataDir'
+import type { ShellTerminalControl } from './ptyShellSupervisor'
 
 function denyNetwork(): never {
   throw new Error('Packaged Agent smoke attempted network access.')
@@ -81,18 +82,30 @@ export async function runPackagedSmoke(): Promise<void> {
     }
     let terminalSucceeded = false
     let terminalInputResult: Promise<void> | undefined
+    let terminalControl: ShellTerminalControl | undefined
+    let terminalReadyOutput = ''
+    const sendTerminalInputWhenReady = () => {
+      if (!terminalControl || terminalInputResult || !terminalReadyOutput.includes('ANAS_PTY_READY')) return
+      const terminal = terminalControl
+      terminalInputResult = Promise.resolve().then(() => terminal.apply({ type: 'text', text: '中文 smoke\r' }))
+      void terminalInputResult.catch(() => {}) // Observed after the executor has drained.
+    }
     const terminalOutput = await runPreparedProcess({
       command: 'packaged PTY input probe', workingDir: documents, timeoutSec: 15,
       pty: { columns: 100, rows: 30 }, invocation: { executable: process.platform === 'win32' ? shell.executable : process.execPath,
         args: process.platform === 'win32'
-          ? ['-NoLogo', '-NoProfile', '-Command', "[Console]::InputEncoding=[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); if([Console]::IsInputRedirected -or [Console]::IsOutputRedirected){exit 2}; Write-Output READY; $line=[Console]::ReadLine(); Write-Output ('PTY_REPLY:'+$line)"]
-          : ['-e', `if(!process.stdin.isTTY||!process.stdout.isTTY)process.exit(2);process.stdin.once('data',v=>{console.log('PTY_REPLY:'+String(v).trim());process.exit(0)})`],
+          ? ['-NoLogo', '-NoProfile', '-Command', "[Console]::InputEncoding=[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); if([Console]::IsInputRedirected -or [Console]::IsOutputRedirected){exit 2}; Write-Output ANAS_PTY_READY; $line=[Console]::ReadLine(); Write-Output ('PTY_REPLY:'+$line)"]
+          : ['-e', `if(!process.stdin.isTTY||!process.stdout.isTTY)process.exit(2);process.stdin.once('data',v=>{console.log('PTY_REPLY:'+String(v).trim());process.exit(0)});console.log('ANAS_PTY_READY')`],
         windowsHide: true, env: { ELECTRON_RUN_AS_NODE: '1' } },
       logScope: 'packaged-smoke', successMessage: 'PTY smoke passed.', failureMessage: 'PTY smoke failed.',
       abortBeforeStartError: 'PTY cancelled before start.', abortError: 'PTY cancelled.', timeoutError: 'PTY smoke timed out.'
     }, undefined, { onTerminal: (terminal) => {
-      terminalInputResult = Promise.resolve(terminal.apply({ type: 'text', text: '中文 smoke\r' }))
-      void terminalInputResult.catch(() => {}) // Observed below after the executor has drained.
+      terminalControl = terminal
+      sendTerminalInputWhenReady()
+    }, onOutput: (_, text) => {
+      if (terminalInputResult) return
+      terminalReadyOutput = (terminalReadyOutput + text).slice(-1024)
+      sendTerminalInputWhenReady()
     },
       onResult: (result) => { terminalSucceeded = result.ok } })
     await terminalInputResult
