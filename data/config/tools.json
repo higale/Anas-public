@@ -1,0 +1,8 @@
+{
+  "order": [],
+  "defaults": {
+    "command": "scripts/run.py {{args}}",
+    "timeout_seconds": 0,
+    "interactive": false
+  }
+}

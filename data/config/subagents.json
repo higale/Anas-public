@@ -1,0 +1,160 @@
+{
+  "subagent_defaults": {
+    "enabled": false,
+    "capabilities": {
+      "application_environment": true,
+      "background_tools": true,
+      "subagents": true,
+      "planning": true,
+      "tool_mode": "selected",
+      "tools": [],
+      "skills": {
+        "project": false,
+        "enabled": true,
+        "mode": "custom",
+        "entries": []
+      },
+      "profile": true,
+      "environment": true,
+      "workspace": true,
+      "memory": true,
+      "mcp": {
+        "default_mode": "selected",
+        "servers": []
+      },
+      "custom_tools": {
+        "project": false,
+        "entries": []
+      }
+    },
+    "subagent_selection": {
+      "mode": "default",
+      "names": []
+    }
+  },
+  "subagents": [
+    {
+      "preset": "general-purpose",
+      "name": "general-purpose",
+      "enabled": true,
+      "description": "A general-purpose agent for complex independent tasks that need broad reasoning, tools, or project work.",
+      "system_prompt": "Complete the delegated task carefully and efficiently. Use the available tools when they materially improve the result, verify important work, and return a concise but complete report to the main assistant.",
+      "capabilities": {
+        "application_environment": true,
+        "background_tools": true,
+        "subagents": true,
+        "planning": true,
+        "tool_mode": "all",
+        "tools": [],
+        "skills": {
+          "project": false,
+          "enabled": true,
+          "mode": "default",
+          "entries": []
+        },
+        "profile": true,
+        "environment": true,
+        "workspace": true,
+        "memory": true,
+        "mcp": {
+          "default_mode": "all",
+          "servers": []
+        },
+        "custom_tools": {
+          "project": false,
+          "entries": []
+        }
+      },
+      "subagent_selection": {
+        "mode": "default",
+        "names": []
+      }
+    },
+    {
+      "preset": "web-researcher",
+      "name": "web-researcher",
+      "enabled": true,
+      "description": "Research current or external information, verify claims, compare sources, and return findings with source links.",
+      "system_prompt": "Research the delegated question using current information. Pay close attention to the current date, distinguish publication dates from event dates, verify important claims, preserve source links, and clearly separate sourced facts from inference.",
+      "capabilities": {
+        "application_environment": true,
+        "background_tools": true,
+        "subagents": false,
+        "planning": false,
+        "tool_mode": "selected",
+        "tools": [
+          "run_shell",
+          "read_file",
+          "http_request"
+        ],
+        "skills": {
+          "project": false,
+          "enabled": true,
+          "mode": "custom",
+          "entries": []
+        },
+        "profile": false,
+        "environment": true,
+        "workspace": false,
+        "memory": false,
+        "mcp": {
+          "default_mode": "selected",
+          "servers": []
+        },
+        "custom_tools": {
+          "project": false,
+          "entries": []
+        }
+      },
+      "subagent_selection": {
+        "mode": "default",
+        "names": []
+      }
+    },
+    {
+      "preset": "project-analyst",
+      "name": "project-analyst",
+      "enabled": true,
+      "description": "Inspect and analyze project files, code, configuration, or documents without modifying them.",
+      "system_prompt": "Inspect the delegated project question using the available file, shell, and network tools for read-only investigation. Trace relevant definitions and call paths, distinguish evidence from inference, identify root causes when applicable, and report precise file references and conclusions without changing project files.",
+      "capabilities": {
+        "application_environment": true,
+        "background_tools": true,
+        "subagents": true,
+        "planning": true,
+        "tool_mode": "selected",
+        "tools": [
+          "read_file",
+          "read_multiple_files",
+          "list_directory",
+          "directory_tree",
+          "get_file_info",
+          "run_shell",
+          "http_request"
+        ],
+        "skills": {
+          "project": false,
+          "enabled": true,
+          "mode": "custom",
+          "entries": []
+        },
+        "profile": false,
+        "environment": true,
+        "workspace": true,
+        "memory": true,
+        "mcp": {
+          "default_mode": "selected",
+          "servers": []
+        },
+        "custom_tools": {
+          "project": false,
+          "entries": []
+        }
+      },
+      "subagent_selection": {
+        "mode": "default",
+        "names": []
+      }
+    }
+  ]
+}

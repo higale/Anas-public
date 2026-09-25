@@ -1,0 +1,10 @@
+# Keep repository text consistent across Windows, WSL, macOS, and Linux.
+* text=auto eol=lf
+
+# Unified patches require a context-space prefix before tabs and empty lines.
+patches/*.patch whitespace=-blank-at-eol,-space-before-tab
+
+# Binary assets are never subject to text normalization.
+*.icns binary
+*.ico binary
+*.png binary

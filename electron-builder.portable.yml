@@ -1,0 +1,9 @@
+extends: ./electron-builder.yml
+directories:
+  output: release-portable
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: ${productName}.${ext}

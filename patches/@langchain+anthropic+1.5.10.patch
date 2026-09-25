@@ -1,0 +1,249 @@
+diff --git a/node_modules/@langchain/anthropic/dist/chat_models.cjs b/node_modules/@langchain/anthropic/dist/chat_models.cjs
+index 4cbdb08..0e87066 100644
+--- a/node_modules/@langchain/anthropic/dist/chat_models.cjs
++++ b/node_modules/@langchain/anthropic/dist/chat_models.cjs
+@@ -878,6 +878,7 @@ var ChatAnthropicMessages = class extends _langchain_core_language_models_chat_m
+ 			signal: options.signal,
+ 			maxRetries: options.maxRetries
+ 		});
++		const usageTracker = new require_stream_events.AnthropicUsageTracker();
+ 		for await (const data of stream) {
+ 			if (options.signal?.aborted) {
+ 				stream.controller.abort();
+@@ -886,6 +887,7 @@ var ChatAnthropicMessages = class extends _langchain_core_language_models_chat_m
+ 			const shouldStreamUsage = this.streamUsage ?? options.streamUsage;
+ 			const result = require_message_outputs._makeMessageChunkFromAnthropicEvent(data, {
+ 				streamUsage: shouldStreamUsage,
++				usageTracker,
+ 				coerceContentToString
+ 			});
+ 			if (!result) continue;
+diff --git a/node_modules/@langchain/anthropic/dist/chat_models.js b/node_modules/@langchain/anthropic/dist/chat_models.js
+index bf4db67..731ee0b 100644
+--- a/node_modules/@langchain/anthropic/dist/chat_models.js
++++ b/node_modules/@langchain/anthropic/dist/chat_models.js
+@@ -5,7 +5,7 @@ import { getSamplingParams, getTaskBudgetBetas, validateInvocationParamCompatibi
+ import { _makeMessageChunkFromAnthropicEvent, anthropicResponseToChatMessages } from "./utils/message_outputs.js";
+ import { wrapAnthropicClientError } from "./utils/errors.js";
+ import PROFILES from "./profiles.js";
+-import { convertAnthropicStream } from "./utils/stream_events.js";
++import { AnthropicUsageTracker, convertAnthropicStream } from "./utils/stream_events.js";
+ import { Anthropic } from "@anthropic-ai/sdk";
+ import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
+ import { AIMessageChunk } from "@langchain/core/messages";
+@@ -878,6 +878,7 @@ var ChatAnthropicMessages = class extends BaseChatModel {
+ 			signal: options.signal,
+ 			maxRetries: options.maxRetries
+ 		});
++		const usageTracker = new AnthropicUsageTracker();
+ 		for await (const data of stream) {
+ 			if (options.signal?.aborted) {
+ 				stream.controller.abort();
+@@ -886,6 +887,7 @@ var ChatAnthropicMessages = class extends BaseChatModel {
+ 			const shouldStreamUsage = this.streamUsage ?? options.streamUsage;
+ 			const result = _makeMessageChunkFromAnthropicEvent(data, {
+ 				streamUsage: shouldStreamUsage,
++				usageTracker,
+ 				coerceContentToString
+ 			});
+ 			if (!result) continue;
+diff --git a/node_modules/@langchain/anthropic/dist/utils/message_outputs.cjs b/node_modules/@langchain/anthropic/dist/utils/message_outputs.cjs
+index 36baeca..5a3dda8 100644
+--- a/node_modules/@langchain/anthropic/dist/utils/message_outputs.cjs
++++ b/node_modules/@langchain/anthropic/dist/utils/message_outputs.cjs
+@@ -10,7 +10,7 @@ function _makeMessageChunkFromAnthropicEvent(data, fields) {
+ 		const filteredAdditionalKwargs = {};
+ 		for (const [key, value] of Object.entries(additionalKwargs)) if (value !== void 0 && value !== null) filteredAdditionalKwargs[key] = value;
+ 		const { input_tokens, output_tokens, ...rest } = usage ?? {};
+-		const usageMetadata = buildUsageMetadata(usage);
++		const usageMetadata = fields.usageTracker.update(usage).delta;
+ 		return { chunk: new _langchain_core_messages.AIMessageChunk({
+ 			content: fields.coerceContentToString ? "" : [],
+ 			additional_kwargs: filteredAdditionalKwargs,
+@@ -22,11 +22,7 @@ function _makeMessageChunkFromAnthropicEvent(data, fields) {
+ 			id: data.message.id
+ 		}) };
+ 	} else if (data.type === "message_delta") {
+-		const usageMetadata = {
+-			input_tokens: 0,
+-			output_tokens: data.usage.output_tokens,
+-			total_tokens: data.usage.output_tokens
+-		};
++		const usageMetadata = fields.usageTracker.update(data.usage).delta;
+ 		const responseMetadata = require_index.iife(() => {
+ 			const output = {};
+ 			if ("context_management" in data.delta) output["context_management"] = data.delta.context_management;
+diff --git a/node_modules/@langchain/anthropic/dist/utils/message_outputs.js b/node_modules/@langchain/anthropic/dist/utils/message_outputs.js
+index fbf9ec8..b9335c3 100644
+--- a/node_modules/@langchain/anthropic/dist/utils/message_outputs.js
++++ b/node_modules/@langchain/anthropic/dist/utils/message_outputs.js
+@@ -10,7 +10,7 @@ function _makeMessageChunkFromAnthropicEvent(data, fields) {
+ 		const filteredAdditionalKwargs = {};
+ 		for (const [key, value] of Object.entries(additionalKwargs)) if (value !== void 0 && value !== null) filteredAdditionalKwargs[key] = value;
+ 		const { input_tokens, output_tokens, ...rest } = usage ?? {};
+-		const usageMetadata = buildUsageMetadata(usage);
++		const usageMetadata = fields.usageTracker.update(usage).delta;
+ 		return { chunk: new AIMessageChunk({
+ 			content: fields.coerceContentToString ? "" : [],
+ 			additional_kwargs: filteredAdditionalKwargs,
+@@ -22,11 +22,7 @@ function _makeMessageChunkFromAnthropicEvent(data, fields) {
+ 			id: data.message.id
+ 		}) };
+ 	} else if (data.type === "message_delta") {
+-		const usageMetadata = {
+-			input_tokens: 0,
+-			output_tokens: data.usage.output_tokens,
+-			total_tokens: data.usage.output_tokens
+-		};
++		const usageMetadata = fields.usageTracker.update(data.usage).delta;
+ 		const responseMetadata = iife(() => {
+ 			const output = {};
+ 			if ("context_management" in data.delta) output["context_management"] = data.delta.context_management;
+diff --git a/node_modules/@langchain/anthropic/dist/utils/stream_events.cjs b/node_modules/@langchain/anthropic/dist/utils/stream_events.cjs
+index b9819c9..0639d59 100644
+--- a/node_modules/@langchain/anthropic/dist/utils/stream_events.cjs
++++ b/node_modules/@langchain/anthropic/dist/utils/stream_events.cjs
+@@ -1,3 +1,27 @@
++// Provider usage fields are cumulative snapshots. Keep one tracker per stream.
++class AnthropicUsageTracker {
++	constructor() {
++		this.current = { input_tokens: 0, output_tokens: 0 };
++		this.snapshot = buildUsageSnapshot(this.current);
++	}
++	update(usage) {
++		for (const key of ["input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"]) {
++			if (usage[key] !== void 0) this.current[key] = usage[key];
++		}
++		const previous = this.snapshot;
++		this.snapshot = buildUsageSnapshot(this.current);
++		const delta = {
++			input_tokens: this.snapshot.input_tokens - previous.input_tokens,
++			output_tokens: this.snapshot.output_tokens - previous.output_tokens,
++			total_tokens: this.snapshot.total_tokens - previous.total_tokens,
++			input_token_details: {
++				cache_creation: this.snapshot.input_token_details.cache_creation - previous.input_token_details.cache_creation,
++				cache_read: this.snapshot.input_token_details.cache_read - previous.input_token_details.cache_read
++			}
++		};
++		return { snapshot: this.snapshot, delta };
++	}
++}
+ //#region src/utils/stream_events.ts
+ /**
+ * Convert an async iterable of raw Anthropic stream events into
+@@ -7,12 +31,13 @@ async function* convertAnthropicStream(source, options = {}) {
+ 	const shouldStreamUsage = options.streamUsage ?? true;
+ 	const blockAccumulators = /* @__PURE__ */ new Map();
+ 	let usageSnapshot;
++	const usageTracker = new AnthropicUsageTracker();
+ 	let responseMetadata = {};
+ 	let stopReason = null;
+ 	for await (const data of source) switch (data.type) {
+ 		case "message_start": {
+ 			const { usage, id, model } = data.message;
+-			if (usage && shouldStreamUsage) usageSnapshot = buildUsageSnapshot(usage);
++			if (usage && shouldStreamUsage) usageSnapshot = usageTracker.update(usage).snapshot;
+ 			yield {
+ 				event: "message-start",
+ 				id,
+@@ -33,16 +58,7 @@ async function* convertAnthropicStream(source, options = {}) {
+ 			stopReason = data.delta.stop_reason;
+ 			if ("usage" in data && "cost" in data.usage && typeof data.usage.cost === "number") responseMetadata = { usage: { cost: data.usage.cost } };
+ 			if (shouldStreamUsage && data.usage) {
+-				if (!usageSnapshot) usageSnapshot = {
+-					input_tokens: 0,
+-					output_tokens: data.usage.output_tokens,
+-					total_tokens: data.usage.output_tokens
+-				};
+-				else usageSnapshot = {
+-					...usageSnapshot,
+-					output_tokens: usageSnapshot.output_tokens + data.usage.output_tokens,
+-					total_tokens: usageSnapshot.input_tokens + usageSnapshot.output_tokens + data.usage.output_tokens
+-				};
++				usageSnapshot = usageTracker.update(data.usage).snapshot;
+ 				yield {
+ 					event: "usage",
+ 					usage: usageSnapshot
+@@ -297,6 +313,7 @@ function finalizeBlock(accumulated) {
+ 	return rest;
+ }
+ //#endregion
++exports.AnthropicUsageTracker = AnthropicUsageTracker;
+ exports.convertAnthropicStream = convertAnthropicStream;
+ 
+ //# sourceMappingURL=stream_events.cjs.map
+\ No newline at end of file
+diff --git a/node_modules/@langchain/anthropic/dist/utils/stream_events.js b/node_modules/@langchain/anthropic/dist/utils/stream_events.js
+index b2c5bb3..8ed7dc7 100644
+--- a/node_modules/@langchain/anthropic/dist/utils/stream_events.js
++++ b/node_modules/@langchain/anthropic/dist/utils/stream_events.js
+@@ -1,3 +1,27 @@
++// Provider usage fields are cumulative snapshots. Keep one tracker per stream.
++class AnthropicUsageTracker {
++	constructor() {
++		this.current = { input_tokens: 0, output_tokens: 0 };
++		this.snapshot = buildUsageSnapshot(this.current);
++	}
++	update(usage) {
++		for (const key of ["input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"]) {
++			if (usage[key] !== void 0) this.current[key] = usage[key];
++		}
++		const previous = this.snapshot;
++		this.snapshot = buildUsageSnapshot(this.current);
++		const delta = {
++			input_tokens: this.snapshot.input_tokens - previous.input_tokens,
++			output_tokens: this.snapshot.output_tokens - previous.output_tokens,
++			total_tokens: this.snapshot.total_tokens - previous.total_tokens,
++			input_token_details: {
++				cache_creation: this.snapshot.input_token_details.cache_creation - previous.input_token_details.cache_creation,
++				cache_read: this.snapshot.input_token_details.cache_read - previous.input_token_details.cache_read
++			}
++		};
++		return { snapshot: this.snapshot, delta };
++	}
++}
+ //#region src/utils/stream_events.ts
+ /**
+ * Convert an async iterable of raw Anthropic stream events into
+@@ -7,12 +31,13 @@ async function* convertAnthropicStream(source, options = {}) {
+ 	const shouldStreamUsage = options.streamUsage ?? true;
+ 	const blockAccumulators = /* @__PURE__ */ new Map();
+ 	let usageSnapshot;
++	const usageTracker = new AnthropicUsageTracker();
+ 	let responseMetadata = {};
+ 	let stopReason = null;
+ 	for await (const data of source) switch (data.type) {
+ 		case "message_start": {
+ 			const { usage, id, model } = data.message;
+-			if (usage && shouldStreamUsage) usageSnapshot = buildUsageSnapshot(usage);
++			if (usage && shouldStreamUsage) usageSnapshot = usageTracker.update(usage).snapshot;
+ 			yield {
+ 				event: "message-start",
+ 				id,
+@@ -33,16 +58,7 @@ async function* convertAnthropicStream(source, options = {}) {
+ 			stopReason = data.delta.stop_reason;
+ 			if ("usage" in data && "cost" in data.usage && typeof data.usage.cost === "number") responseMetadata = { usage: { cost: data.usage.cost } };
+ 			if (shouldStreamUsage && data.usage) {
+-				if (!usageSnapshot) usageSnapshot = {
+-					input_tokens: 0,
+-					output_tokens: data.usage.output_tokens,
+-					total_tokens: data.usage.output_tokens
+-				};
+-				else usageSnapshot = {
+-					...usageSnapshot,
+-					output_tokens: usageSnapshot.output_tokens + data.usage.output_tokens,
+-					total_tokens: usageSnapshot.input_tokens + usageSnapshot.output_tokens + data.usage.output_tokens
+-				};
++				usageSnapshot = usageTracker.update(data.usage).snapshot;
+ 				yield {
+ 					event: "usage",
+ 					usage: usageSnapshot
+@@ -297,6 +313,6 @@ function finalizeBlock(accumulated) {
+ 	return rest;
+ }
+ //#endregion
+-export { convertAnthropicStream };
++export { AnthropicUsageTracker, convertAnthropicStream };
+ 
+ //# sourceMappingURL=stream_events.js.map
+\ No newline at end of file

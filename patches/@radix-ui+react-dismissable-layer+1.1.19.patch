@@ -1,0 +1,60 @@
+diff --git a/node_modules/@radix-ui/react-dismissable-layer/dist/index.js b/node_modules/@radix-ui/react-dismissable-layer/dist/index.js
+index 3fef516..d5a24f2 100644
+--- a/node_modules/@radix-ui/react-dismissable-layer/dist/index.js
++++ b/node_modules/@radix-ui/react-dismissable-layer/dist/index.js
+@@ -125,9 +125,9 @@ var DismissableLayer = /* @__PURE__ */ React.forwardRef(
+       onInteractOutside?.(event);
+       if (!event.defaultPrevented) onDismiss?.();
+     }, ownerDocument);
+-    const isHighestLayer = node ? index === layers.length - 1 : false;
+     const handleKeyDown = (0, import_react_use_callback_ref.useCallbackRef)((event) => {
+-      if (event.key !== "Escape") {
++      // Resolve the current top layer at dispatch time, before passive effects re-render.
++      if (event.key !== "Escape" || !node || [...context.layers].at(-1) !== node) {
+         return;
+       }
+       onEscapeKeyDown?.(event);
+@@ -137,12 +137,9 @@ var DismissableLayer = /* @__PURE__ */ React.forwardRef(
+       }
+     });
+     React.useEffect(() => {
+-      if (!isHighestLayer) {
+-        return;
+-      }
+       ownerDocument.addEventListener("keydown", handleKeyDown, { capture: true });
+       return () => ownerDocument.removeEventListener("keydown", handleKeyDown, { capture: true });
+-    }, [ownerDocument, isHighestLayer, handleKeyDown]);
++    }, [ownerDocument, handleKeyDown]);
+     React.useEffect(() => {
+       if (!node) return;
+       if (disableOutsidePointerEvents) {
+diff --git a/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs b/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs
+index b30bb95..eeac139 100644
+--- a/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs
++++ b/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs
+@@ -87,9 +87,9 @@ var DismissableLayer = /* @__PURE__ */ React.forwardRef(
+       onInteractOutside?.(event);
+       if (!event.defaultPrevented) onDismiss?.();
+     }, ownerDocument);
+-    const isHighestLayer = node ? index === layers.length - 1 : false;
+     const handleKeyDown = useCallbackRef((event) => {
+-      if (event.key !== "Escape") {
++      // Resolve the current top layer at dispatch time, before passive effects re-render.
++      if (event.key !== "Escape" || !node || [...context.layers].at(-1) !== node) {
+         return;
+       }
+       onEscapeKeyDown?.(event);
+@@ -99,12 +99,9 @@ var DismissableLayer = /* @__PURE__ */ React.forwardRef(
+       }
+     });
+     React.useEffect(() => {
+-      if (!isHighestLayer) {
+-        return;
+-      }
+       ownerDocument.addEventListener("keydown", handleKeyDown, { capture: true });
+       return () => ownerDocument.removeEventListener("keydown", handleKeyDown, { capture: true });
+-    }, [ownerDocument, isHighestLayer, handleKeyDown]);
++    }, [ownerDocument, handleKeyDown]);
+     React.useEffect(() => {
+       if (!node) return;
+       if (disableOutsidePointerEvents) {

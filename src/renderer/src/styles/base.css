@@ -1,0 +1,42 @@
+* { box-sizing: border-box; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--scroll-thumb);
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+html, body, #root { width: 100%; height: 100%; margin: 0; }
+body { font-size: var(--font-size-ui); }
+/* Keep native keyboard focus visible without the browser's high-contrast ring.
+   Shared controls can override this low-specificity default. */
+:where(:focus-visible) {
+  outline: 2px solid var(--control-field-focus-ring);
+  outline-offset: 2px;
+}
+button, input, textarea {
+  font: inherit;
+  font-size: var(--control-font-size);
+}
+button, input { line-height: var(--font-line-height-ui); }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.45; }
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}

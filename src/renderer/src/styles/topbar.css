@@ -1,0 +1,105 @@
+.workspace {
+  --workspace-content-gutter: clamp(14px, 3vw, 36px);
+  --workspace-content-padding: 18px var(--workspace-content-gutter) 28px;
+
+  position: relative;
+  display: grid;
+  grid-template-rows: var(--topbar-height) minmax(0, 1fr) auto;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-reading {
+  --workspace-content-max-width: 760px;
+}
+
+.workspace-reading-wide {
+  --workspace-content-max-width: 1080px;
+}
+
+.workspace-reading-adaptive {
+  --workspace-content-max-width: 100%;
+}
+
+.workspace-workbench {
+  --workspace-content-max-width: 1080px;
+}
+
+.topbar {
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px var(--titlebar-actions-inset) 8px 14px;
+  border-bottom: 1px solid var(--border-panel);
+  background: var(--bg-titlebar);
+}
+
+:root[data-platform="darwin"] .app-shell.sidebar-collapsed .topbar {
+  padding-left: calc(14px + var(--traffic-light-reserve));
+}
+
+.topbar button,
+.topbar input,
+.topbar a {
+  -webkit-app-region: no-drag;
+}
+
+.topbar-sidebar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-panel);
+}
+
+.thread-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(680px, calc(100% - 36px));
+}
+
+.thread-topbar-project,
+.thread-topbar-more {
+  width: 26px;
+  height: 26px;
+  color: var(--text-secondary);
+}
+
+.thread-topbar-project {
+  grid-column: 1;
+}
+
+.thread-topbar-more {
+  grid-column: 3;
+}
+
+.thread-topbar-project:hover,
+.thread-topbar-project[aria-expanded="true"],
+.thread-topbar-more:hover,
+.thread-topbar-more[aria-expanded="true"] {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.thread-topbar-title {
+  grid-column: 2;
+  color: var(--text);
+  font-size: var(--font-size-ui);
+  font-weight: 600;
+  line-height: var(--font-line-height-ui);
+  user-select: none;
+}
+
+.thread-topbar-title-input {
+  grid-column: 2;
+  min-width: 0;
+  height: var(--text-button-height);
+  padding: 2px 7px;
+  font-size: var(--font-size-ui);
+}

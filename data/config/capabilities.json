@@ -1,0 +1,31 @@
+{
+  "application_environment": true,
+  "background_tools": true,
+  "subagents": true,
+  "planning": true,
+  "tool_mode": "all",
+  "tools": [],
+  "skills": {
+    "project": false,
+    "enabled": true,
+    "mode": "default",
+    "entries": []
+  },
+  "restrict_subagents": false,
+  "profile": true,
+  "environment": true,
+  "workspace": true,
+  "memory": true,
+  "mcp": {
+    "default_mode": "all",
+    "servers": []
+  },
+  "subagent_selection": {
+    "mode": "default",
+    "names": []
+  },
+  "custom_tools": {
+    "project": false,
+    "entries": []
+  }
+}

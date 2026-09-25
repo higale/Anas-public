@@ -1,0 +1,205 @@
+.app-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.app-layout {
+  position: relative;
+}
+
+.initial-app-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  overflow: auto;
+}
+
+.initial-app-status {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(640px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.initial-app-gate-below-titlebar {
+  top: var(--topbar-height);
+}
+
+.initial-app-status .ui-disclosure {
+  text-align: left;
+}
+
+.initial-app-status > strong {
+  color: var(--text-strong);
+  font-size: calc(var(--font-size-ui) + 1px);
+}
+
+.initial-app-status > p {
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.55;
+}
+
+.initial-app-status-error {
+  justify-items: stretch;
+  padding: 22px;
+  border: 1px solid var(--danger-border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  box-shadow: 0 18px 48px var(--shadow-dialog);
+}
+
+.initial-app-failure-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.initial-app-failure,
+.app-issue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.initial-app-failure {
+  flex-wrap: wrap;
+  padding: 9px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  background: var(--bg-surface-alt);
+  text-align: left;
+}
+
+.initial-app-failure > span,
+.app-issue > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.initial-app-failure > span {
+  flex: 1 1 220px;
+  overflow-wrap: anywhere;
+}
+
+.initial-app-failure > .ui-row {
+  flex: 0 0 auto;
+}
+
+.initial-app-failure small,
+.app-issue small {
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font-size: var(--font-size-small);
+}
+
+.app-issue-tray {
+  position: absolute;
+  top: calc(var(--topbar-height) + 10px);
+  right: 16px;
+  z-index: 30;
+  display: grid;
+  gap: 7px;
+  width: min(360px, calc(100% - 32px));
+}
+
+.app-issue {
+  padding: 9px 10px;
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-ui);
+  box-shadow: 0 8px 24px var(--shadow-dialog);
+}
+
+.window-drag-layer {
+  -webkit-app-region: drag;
+  position: absolute;
+  inset: 0 var(--titlebar-controls-width) auto var(--sidebar-width);
+  z-index: 10;
+  height: var(--topbar-height);
+  background: transparent;
+}
+
+.zoom-hud {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  min-width: 104px;
+  height: 58px;
+  padding: 0 24px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, var(--text) 12%);
+  border-radius: 10px;
+  background: var(--bg-surface-alt);
+  color: var(--text-strong);
+  font-size: 26px;
+  font-weight: 750;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 18px 48px var(--shadow-dialog),
+    0 0 0 1px color-mix(in srgb, var(--bg-app) 82%, var(--text) 18%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.app-shell.sidebar-collapsed .app-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell.sidebar-collapsed .window-drag-layer {
+  left: 0;
+}
+
+.sidebar-peek-trigger {
+  -webkit-app-region: no-drag;
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 24;
+  width: 6px;
+  background: transparent;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 25;
+  width: var(--sidebar-width);
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 1px));
+  box-shadow: 10px 0 28px transparent;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    visibility 0s linear 150ms;
+  will-change: transform;
+}
+
+.app-shell.sidebar-collapsed.sidebar-peek-open .sidebar {
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  box-shadow: 10px 0 28px var(--shadow-drawer);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.sidebar-collapsed .sidebar {
+    transition: none;
+  }
+}

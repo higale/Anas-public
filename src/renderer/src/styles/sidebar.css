@@ -1,0 +1,182 @@
+.thread-list,
+.agent-message-panel,
+.composer,
+.settings-workspace {
+  -webkit-app-region: no-drag;
+}
+
+.sidebar {
+  --ui-sidebar-gap: 0;
+
+  position: relative;
+  overflow: visible;
+}
+
+
+
+.app-sidebar-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sidebar button,
+.sidebar input,
+.sidebar nav {
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-profile-header {
+  -webkit-app-region: drag;
+  flex: 1 1 auto;
+  padding: 18px 8px 14px 16px;
+}
+
+.sidebar-profile-header > :last-child {
+  min-width: 0;
+}
+
+.sidebar-profile-header button.ui-avatar {
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-profile-row {
+  -webkit-app-region: drag;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+.sidebar-collapse {
+  -webkit-app-region: no-drag;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+}
+
+.new-chat {
+  flex: 0 0 auto;
+  display: flex;
+  margin: 4px 0 14px;
+  padding: 9px 10px;
+  color: var(--text);
+}
+
+.thread-list {
+  --thread-list-leading-width: 18px;
+  --thread-list-leading-gap: 6px;
+  --thread-list-row-inline-padding: 3px;
+  --thread-list-content-inline-padding: 3px;
+  --thread-list-text-start: 30px;
+  --ui-scroll-list-padding: 0 0 12px;
+
+  flex: 1 1 auto;
+  overflow-x: hidden;
+}
+
+.thread-open {
+  grid-template-columns: var(--thread-list-leading-width) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--thread-list-leading-gap);
+  --ui-list-item-main-padding: 5px var(--thread-list-content-inline-padding);
+}
+
+.thread-open.editing {
+  --ui-list-item-main-padding: 4px 34px 4px var(--thread-list-content-inline-padding);
+}
+
+.thread-open input {
+  grid-column: 2;
+  min-width: 0;
+  width: 100%;
+  height: var(--text-button-height-compact);
+  padding: 2px 6px;
+  font-size: var(--font-size-ui);
+}
+
+.thread-item {
+  --ui-list-item-row-padding: var(--thread-list-row-inline-padding);
+}
+
+.thread-item[data-pinned] {
+  overflow: hidden;
+}
+
+.thread-item[data-pinned]::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-top: 8px solid var(--accent);
+  border-right: 8px solid transparent;
+  content: '';
+  pointer-events: none;
+}
+
+.thread-name {
+  grid-column: 2;
+  padding-right: 32px;
+  font-size: var(--font-size-ui);
+}
+
+.thread-status-indicator {
+  grid-column: 1;
+  grid-row: 1;
+  display: inline-flex;
+  flex: 0 0 13px;
+  align-items: center;
+  justify-content: center;
+  min-width: 13px;
+  color: var(--text-muted);
+}
+
+.thread-status-indicator:empty {
+  display: none;
+}
+
+.thread-action-menu {
+  --ui-menu-gap: 4px;
+
+  min-width: 168px;
+}
+
+.sidebar-footer {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.sidebar-settings {
+  font-size: var(--font-size-ui);
+}
+
+.sidebar-settings:hover,
+.sidebar-settings.active {
+  color: var(--text);
+}
+
+.app-menu-popover {
+  width: calc(var(--sidebar-width) - 28px);
+}
+
+.app-menu-build-info {
+  display: grid;
+  gap: 2px;
+  padding: 2px 9px 1px;
+  color: var(--text-muted);
+  font-size: var(--font-size-small);
+  line-height: 1.35;
+}
+
+.app-menu-build-info > span:first-child {
+  color: var(--text-secondary);
+  font-weight: 600;
+}

@@ -1,0 +1,14 @@
+{
+  "id": "example-read-text-raw",
+  "name": "read_text_raw",
+  "description": "读取本地 UTF-8 文本文件的完整原始内容，不添加行号、不改写换行。传入文件绝对路径；最大 512 KiB（524288 字节），超限或不是 UTF-8 文本时返回错误，不截断文件。",
+  "input_schema": {
+    "type": "object",
+    "properties": { "path": { "type": "string", "minLength": 1, "description": "文本文件的绝对路径" } },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "command": "scripts/run.py {{args}}",
+  "timeout_seconds": 0,
+  "interactive": false
+}

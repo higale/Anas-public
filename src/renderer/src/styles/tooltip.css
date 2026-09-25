@@ -1,0 +1,22 @@
+.ui-floating-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(var(--tooltip-max-width, 240px), calc(100vw - 24px));
+  padding: 5px 7px;
+  border: 1px solid var(--tooltip-border);
+  border-radius: 6px;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  box-shadow: 0 8px 24px var(--tooltip-shadow);
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-100%);
+}
+
+.ui-global-tooltip {
+  transform: none;
+}

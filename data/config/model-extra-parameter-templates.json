@@ -1,0 +1,187 @@
+{
+  "openai_chat_completions": [
+    {
+      "label": "OpenAI Chat Completions",
+      "source": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create",
+      "parameters": [
+        {
+          "path": [
+            "temperature"
+          ],
+          "description": "settings.parameter_temperature",
+          "example": 0.7,
+          "range": "0–2",
+          "note": "settings.parameter_sampling"
+        },
+        {
+          "path": [
+            "top_p"
+          ],
+          "description": "settings.parameter_top_p",
+          "example": 0.9,
+          "range": "0–1",
+          "note": "settings.parameter_sampling"
+        },
+        {
+          "path": [
+            "frequency_penalty"
+          ],
+          "description": "settings.parameter_frequency_penalty",
+          "example": 0,
+          "range": "−2–2"
+        },
+        {
+          "path": [
+            "presence_penalty"
+          ],
+          "description": "settings.parameter_presence_penalty",
+          "example": 0,
+          "range": "−2–2"
+        },
+        {
+          "path": [
+            "stop"
+          ],
+          "description": "settings.parameter_stop",
+          "example": [
+            "<END>"
+          ],
+          "note": "settings.parameter_stop_chat"
+        },
+        {
+          "path": [
+            "response_format",
+            "type"
+          ],
+          "description": "settings.parameter_json_output",
+          "example": "json_object",
+          "range": "text / json_object / json_schema",
+          "note": "settings.parameter_json_prompt"
+        },
+        {
+          "path": [
+            "verbosity"
+          ],
+          "description": "settings.parameter_verbosity",
+          "example": "medium",
+          "range": "low / medium / high",
+          "note": "settings.parameter_model_values"
+        }
+      ]
+    },
+    {
+      "label": "Qwen / DashScope",
+      "source": "https://help.aliyun.com/zh/model-studio/deep-thinking",
+      "parameters": [
+        {
+          "path": [
+            "enable_thinking"
+          ],
+          "description": "settings.parameter_enable_thinking",
+          "example": true,
+          "range": "true / false",
+          "note": "settings.parameter_qwen_only"
+        },
+        {
+          "path": [
+            "thinking_budget"
+          ],
+          "description": "settings.parameter_thinking_budget",
+          "example": 4096,
+          "note": "settings.parameter_qwen_budget"
+        }
+      ]
+    }
+  ],
+  "openai_responses": [
+    {
+      "label": "OpenAI Responses",
+      "source": "https://developers.openai.com/api/reference/cli/resources/responses/methods/create",
+      "parameters": [
+        {
+          "path": [
+            "temperature"
+          ],
+          "description": "settings.parameter_temperature",
+          "example": 0.7,
+          "range": "0–2",
+          "note": "settings.parameter_sampling"
+        },
+        {
+          "path": [
+            "top_p"
+          ],
+          "description": "settings.parameter_top_p",
+          "example": 0.9,
+          "range": "0–1",
+          "note": "settings.parameter_sampling"
+        },
+        {
+          "path": [
+            "text",
+            "verbosity"
+          ],
+          "description": "settings.parameter_verbosity",
+          "example": "medium",
+          "range": "low / medium / high",
+          "note": "settings.parameter_model_values"
+        },
+        {
+          "path": [
+            "text",
+            "format",
+            "type"
+          ],
+          "description": "settings.parameter_json_output",
+          "example": "json_object",
+          "range": "text / json_object / json_schema",
+          "note": "settings.parameter_json_prompt"
+        }
+      ]
+    }
+  ],
+  "anthropic_messages": [
+    {
+      "label": "Anthropic Messages",
+      "source": "https://platform.claude.com/docs/en/api/messages/create",
+      "parameters": [
+        {
+          "path": [
+            "stop_sequences"
+          ],
+          "description": "settings.parameter_stop",
+          "example": [
+            "<END>"
+          ]
+        },
+        {
+          "path": [
+            "temperature"
+          ],
+          "description": "settings.parameter_temperature",
+          "example": 1,
+          "range": "0–1",
+          "note": "settings.parameter_claude_temperature"
+        },
+        {
+          "path": [
+            "top_p"
+          ],
+          "description": "settings.parameter_top_p",
+          "example": 1,
+          "range": "0–1",
+          "note": "settings.parameter_claude_top_sampling"
+        },
+        {
+          "path": [
+            "top_k"
+          ],
+          "description": "settings.parameter_top_k",
+          "example": 40,
+          "range": "≥ 0",
+          "note": "settings.parameter_claude_top_sampling"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "groups": [
+    {
+      "id": "openai_responses",
+      "label": "OpenAI Responses",
+      "templates": [
+        {
+          "id": "reasoning-none",
+          "label": "none",
+          "parameters": {
+            "reasoning": {
+              "effort": "none"
+            }
+          }
+        },
+        {
+          "id": "reasoning-minimal",
+          "label": "minimal",
+          "parameters": {
+            "reasoning": {
+              "effort": "minimal",
+              "summary": "auto"
+            }
+          }
+        },
+        {
+          "id": "reasoning-low",
+          "label": "low",
+          "parameters": {
+            "reasoning": {
+              "effort": "low",
+              "summary": "auto"
+            }
+          }
+        },
+        {
+          "id": "reasoning-medium",
+          "label": "medium",
+          "parameters": {
+            "reasoning": {
+              "effort": "medium",
+              "summary": "auto"
+            }
+          }
+        },
+        {
+          "id": "reasoning-high",
+          "label": "high",
+          "parameters": {
+            "reasoning": {
+              "effort": "high",
+              "summary": "auto"
+            }
+          }
+        },
+        {
+          "id": "reasoning-xhigh",
+          "label": "xhigh",
+          "parameters": {
+            "reasoning": {
+              "effort": "xhigh",
+              "summary": "auto"
+            }
+          }
+        },
+        {
+          "id": "reasoning-max",
+          "label": "max",
+          "parameters": {
+            "reasoning": {
+              "effort": "max",
+              "summary": "auto"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "openai_chat_completions",
+      "label": "OpenAI Chat Completions",
+      "templates": [
+        {
+          "id": "reasoning-none",
+          "label": "none",
+          "parameters": {
+            "reasoning_effort": "none"
+          }
+        },
+        {
+          "id": "reasoning-minimal",
+          "label": "minimal",
+          "parameters": {
+            "reasoning_effort": "minimal"
+          }
+        },
+        {
+          "id": "reasoning-low",
+          "label": "low",
+          "parameters": {
+            "reasoning_effort": "low"
+          }
+        },
+        {
+          "id": "reasoning-medium",
+          "label": "medium",
+          "parameters": {
+            "reasoning_effort": "medium"
+          }
+        },
+        {
+          "id": "reasoning-high",
+          "label": "high",
+          "parameters": {
+            "reasoning_effort": "high"
+          }
+        },
+        {
+          "id": "reasoning-xhigh",
+          "label": "xhigh",
+          "parameters": {
+            "reasoning_effort": "xhigh"
+          }
+        },
+        {
+          "id": "reasoning-max",
+          "label": "max",
+          "parameters": {
+            "reasoning_effort": "max"
+          }
+        }
+      ]
+    },
+    {
+      "id": "anthropic_messages",
+      "label": "Anthropic Messages",
+      "templates": [
+        {
+          "id": "thinking-disabled",
+          "label": "disable",
+          "parameters": {
+            "thinking": {
+              "type": "disabled"
+            }
+          }
+        },
+        {
+          "id": "adaptive-low",
+          "label": "low",
+          "parameters": {
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "low"
+            }
+          }
+        },
+        {
+          "id": "adaptive-medium",
+          "label": "medium",
+          "parameters": {
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "medium"
+            }
+          }
+        },
+        {
+          "id": "adaptive-high",
+          "label": "high",
+          "parameters": {
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        },
+        {
+          "id": "adaptive-xhigh",
+          "label": "xhigh",
+          "parameters": {
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "xhigh"
+            }
+          }
+        },
+        {
+          "id": "adaptive-max",
+          "label": "max",
+          "parameters": {
+            "thinking": {
+              "type": "adaptive"
+            },
+            "output_config": {
+              "effort": "max"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

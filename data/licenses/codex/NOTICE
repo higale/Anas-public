@@ -1,0 +1,7 @@
+OpenAI Codex
+Copyright 2025 OpenAI
+
+The filesystem Skill catalog guidance in src/main/skillsStore.ts is copied from
+codex-rs/ext/skills/src/catalog_prompt.rs in https://github.com/openai/codex.
+Anas renders its own available Skill sources and projects selected instructions
+using the Codex <skill> message format.

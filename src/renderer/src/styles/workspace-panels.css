@@ -1,0 +1,97 @@
+.agent-workspace {
+  --workspace-content-gutter: clamp(14px, 3vw, 36px);
+  --workspace-content-padding: 18px var(--workspace-content-gutter) 28px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.agent-workspace-body {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.agent-chat-column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.agent-chat-column > .agent-message-scroll-frame { flex: 1 1 0; }
+.agent-chat-column > .composer-area { flex: 0 0 auto; }
+
+.workspace-panels {
+  position: relative;
+  flex: 0 0 var(--workspace-panel-width);
+  width: var(--workspace-panel-width);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border-left: 1px solid var(--border-panel);
+  background: var(--bg-app);
+}
+
+.workspace-panels-drawer {
+  position: absolute;
+  z-index: 40;
+  inset: 0 0 0 auto;
+  box-shadow: -10px 0 32px var(--shadow-drawer);
+  outline: none;
+}
+
+.workspace-panel-resize { inset: 0 auto 0 -1px; width: 8px; }
+.workspace-panel-resize::after { left: 0; }
+.agent-subagent-panel { grid-template-rows: auto minmax(0, 1fr); }
+.agent-subagent-panel-title > h2 { font-family: inherit; }
+
+.agent-chat-column[hidden] { display: none; }
+.agent-chat-column > .topbar { flex: 0 0 var(--topbar-height); min-width: 0; }
+.agent-workspace-body[data-panels-open="true"] .topbar { padding-right: 14px; }
+.workspace-panels[data-maximized="true"] { flex: 1 1 0; width: 100%; border-left: 0; }
+.workspace-panels-titlebar {
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 20;
+  padding-right: var(--titlebar-actions-inset);
+  background: var(--bg-titlebar);
+}
+.workspace-panels-titlebar > .ui-tab-workspace-tabs {
+  min-height: var(--topbar-height);
+}
+.workspace-panels-titlebar > .ui-tab-workspace-actions {
+  height: var(--topbar-height);
+}
+.workspace-panels-titlebar button { -webkit-app-region: no-drag; }
+:root[data-platform="darwin"] .sidebar-collapsed .workspace-panels[data-maximized="true"] .workspace-panels-titlebar {
+  padding-left: var(--traffic-light-reserve);
+}
+
+/* Keep both sets of window actions on the first row. Only the tab strip wraps
+   when there is no longer room for a readable tab beside those actions. */
+:root[data-platform="win32"] .workspace-panels-titlebar {
+  flex-flow: row-reverse wrap;
+  align-items: flex-start;
+  font-size: var(--font-size-ui);
+  padding-right: 0;
+}
+:root[data-platform="win32"] .workspace-panels-titlebar::before {
+  content: '';
+  order: -2;
+  flex: 0 0 calc(var(--titlebar-actions-inset) + 2 * var(--text-button-height));
+  height: max(var(--topbar-height), calc(env(titlebar-area-y, 0px) + env(titlebar-area-height, 36px)));
+}
+:root[data-platform="win32"] .workspace-panels-titlebar > .ui-tab-workspace-actions {
+  position: absolute;
+  inset: 0 var(--titlebar-actions-inset) auto auto;
+}
+:root[data-platform="win32"] .workspace-panels-titlebar > .ui-tab-workspace-tabs {
+  flex: 1 0 min(100%, 16em);
+}

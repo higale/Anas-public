@@ -1,0 +1,522 @@
+{
+  "templates": [
+    {
+      "type": "group",
+      "id": "local",
+      "label": "Local",
+      "children": [
+        {
+          "type": "group",
+          "id": "lm-studio",
+          "label": "LM Studio",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "LM Studio",
+                "protocol": "openai_chat_completions",
+                "base_url": "http://localhost:1234/v1",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "LM Studio",
+                "protocol": "anthropic_messages",
+                "base_url": "http://localhost:1234",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "ollama",
+          "label": "Ollama",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "Ollama",
+                "protocol": "openai_chat_completions",
+                "base_url": "http://localhost:11434/v1",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "Ollama",
+                "protocol": "anthropic_messages",
+                "base_url": "http://localhost:11434",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "llama-cpp",
+          "label": "LLaMA",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "LLaMA",
+                "protocol": "openai_chat_completions",
+                "base_url": "http://localhost:8080/v1",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "LLaMA",
+                "protocol": "anthropic_messages",
+                "base_url": "http://localhost:8080",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "vllm",
+          "label": "vLLM",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "vLLM",
+                "protocol": "openai_chat_completions",
+                "base_url": "http://localhost:8000/v1",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "vLLM",
+                "protocol": "anthropic_messages",
+                "base_url": "http://localhost:8000",
+                "model_list_url": "{origin}/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "id": "china",
+      "label": "China",
+      "children": [
+        {
+          "type": "group",
+          "id": "qwen",
+          "label": "Qwen",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "Qwen",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                "model_list_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "Qwen",
+                "protocol": "anthropic_messages",
+                "base_url": "https://dashscope.aliyuncs.com/apps/anthropic",
+                "model_list_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "group",
+              "id": "token-plan",
+              "label": "TokenPlan",
+              "children": [
+                {
+                  "type": "template",
+                  "id": "openai",
+                  "label": "OpenAI",
+                  "config": {
+                    "name": "Qwen TokenPlan",
+                    "protocol": "openai_chat_completions",
+                    "base_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+                    "model_list_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/models",
+                    "model_list_auth": "bearer"
+                  }
+                },
+                {
+                  "type": "template",
+                  "id": "anthropic",
+                  "label": "Anthropic Messages",
+                  "config": {
+                    "name": "Qwen TokenPlan",
+                    "protocol": "anthropic_messages",
+                    "base_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/apps/anthropic",
+                    "model_list_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/models",
+                    "model_list_auth": "bearer"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "deepseek",
+          "label": "DeepSeek",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "DeepSeek",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://api.deepseek.com/v1",
+                "model_list_url": "https://api.deepseek.com/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "DeepSeek",
+                "protocol": "anthropic_messages",
+                "base_url": "https://api.deepseek.com/anthropic",
+                "model_list_url": "https://api.deepseek.com/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "minimax",
+          "label": "MiniMax",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "MiniMax",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://api.minimaxi.com/v1",
+                "model_list_url": "https://api.minimaxi.com/v1/models",
+                "model_list_auth": "bearer",
+                "parameters": {
+                  "reasoning_split": true
+                }
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "MiniMax",
+                "protocol": "anthropic_messages",
+                "base_url": "https://api.minimaxi.com/anthropic",
+                "model_list_url": "https://api.minimaxi.com/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "volcengine",
+          "label": "VolcEngine",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "VolcEngine",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+                "model_list_url": "https://ark.cn-beijing.volces.com/api/v3/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "VolcEngine",
+                "protocol": "anthropic_messages",
+                "base_url": "https://ark.cn-beijing.volces.com/api/compatible",
+                "model_list_url": "https://ark.cn-beijing.volces.com/api/v3/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "kimi",
+          "label": "Kimi",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "Kimi",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://api.moonshot.cn/v1",
+                "model_list_url": "https://api.moonshot.cn/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "Kimi",
+                "protocol": "anthropic_messages",
+                "base_url": "https://api.moonshot.cn/anthropic",
+                "model_list_url": "https://api.moonshot.cn/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "glm",
+          "label": "GLM",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "GLM",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://open.bigmodel.cn/api/paas/v4",
+                "model_list_url": "https://open.bigmodel.cn/api/paas/v4/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "GLM",
+                "protocol": "anthropic_messages",
+                "base_url": "https://open.bigmodel.cn/api/anthropic",
+                "model_list_url": "https://open.bigmodel.cn/api/paas/v4/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "id": "mimo",
+          "label": "MIMO",
+          "children": [
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "MIMO",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://api.xiaomimimo.com/v1",
+                "model_list_url": "https://api.xiaomimimo.com/v1/models",
+                "model_list_auth": "bearer"
+              }
+            },
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "MIMO",
+                "protocol": "anthropic_messages",
+                "base_url": "https://api.xiaomimimo.com/anthropic",
+                "model_list_url": "https://api.xiaomimimo.com/v1/models",
+                "model_list_auth": "bearer"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "id": "united-states",
+      "label": "United States",
+      "children": [
+        {
+          "type": "template",
+          "id": "openai",
+          "label": "OpenAI",
+          "config": {
+            "name": "OpenAI",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://api.openai.com/v1",
+            "model_list_url": "https://api.openai.com/v1/models",
+            "model_list_auth": "bearer"
+          }
+        },
+        {
+          "type": "group",
+          "id": "anthropic",
+          "label": "Anthropic",
+          "children": [
+            {
+              "type": "template",
+              "id": "anthropic",
+              "label": "Anthropic Messages",
+              "config": {
+                "name": "Anthropic",
+                "protocol": "anthropic_messages",
+                "base_url": "https://api.anthropic.com",
+                "model_list_url": "https://api.anthropic.com/v1/models",
+                "model_list_auth": "anthropic"
+              }
+            },
+            {
+              "type": "template",
+              "id": "openai",
+              "label": "OpenAI",
+              "config": {
+                "name": "Anthropic",
+                "protocol": "openai_chat_completions",
+                "base_url": "https://api.anthropic.com/v1",
+                "model_list_url": "https://api.anthropic.com/v1/models",
+                "model_list_auth": "anthropic"
+              }
+            }
+          ]
+        },
+        {
+          "type": "template",
+          "id": "gemini",
+          "label": "Gemini",
+          "config": {
+            "name": "Gemini",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "model_list_url": "https://generativelanguage.googleapis.com/v1beta/openai/models",
+            "model_list_auth": "bearer"
+          }
+        },
+        {
+          "type": "template",
+          "id": "xai",
+          "label": "xAI / Grok",
+          "config": {
+            "name": "xAI / Grok",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://api.x.ai/v1",
+            "model_list_url": "https://api.x.ai/v1/language-models",
+            "model_list_auth": "bearer"
+          }
+        },
+        {
+          "type": "template",
+          "id": "groq",
+          "label": "Groq",
+          "config": {
+            "name": "Groq",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://api.groq.com/openai/v1",
+            "model_list_url": "https://api.groq.com/openai/v1/models",
+            "model_list_auth": "bearer"
+          }
+        },
+        {
+          "type": "template",
+          "id": "openrouter",
+          "label": "OpenRouter",
+          "config": {
+            "name": "OpenRouter",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model_list_url": "https://openrouter.ai/api/v1/models",
+            "model_list_auth": "bearer"
+          }
+        },
+        {
+          "type": "template",
+          "id": "together-ai",
+          "label": "Together AI",
+          "config": {
+            "name": "Together AI",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://api.together.ai/v1",
+            "model_list_url": "https://api.together.ai/v1/models",
+            "model_list_auth": "bearer"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "id": "france",
+      "label": "France",
+      "children": [
+        {
+          "type": "template",
+          "id": "mistral",
+          "label": "Mistral",
+          "config": {
+            "name": "Mistral",
+            "protocol": "openai_chat_completions",
+            "base_url": "https://api.mistral.ai/v1",
+            "model_list_url": "https://api.mistral.ai/v1/models",
+            "model_list_auth": "bearer"
+          }
+        }
+      ]
+    }
+  ]
+}

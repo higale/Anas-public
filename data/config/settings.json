@@ -1,0 +1,51 @@
+{
+  "profile": {
+    "assistant": {
+      "name": "Ananas",
+      "role": "A reliable, thoughtful, and friendly AI assistant.",
+      "instructions": "Understand the user's goal and provide clear, accurate, actionable help. State uncertainty clearly.",
+      "new_avatar_path": ""
+    },
+    "user": {
+      "preferred_name": "",
+      "personal_info": ""
+    }
+  },
+  "speech_reply": {
+    "enabled": false,
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "speed": 1
+  },
+  "language": "system",
+  "theme": "system",
+  "font_size": 14,
+  "chat_content_width": "narrow",
+  "new_thread_model_selection": "default",
+  "default_model_id": null,
+  "attachment_text_max_chars": 200000,
+  "attachment_text_overflow": "truncate",
+  "log_level": "info",
+  "log_retention_days": 14,
+  "max_model_calls_per_run": 0,
+  "environment_context": {
+    "operating_system": true,
+    "power_shell": true,
+    "bundled_commands": true,
+    "current_date": true,
+    "application_data_directory": true,
+    "user_home_directory": true,
+    "custom_information_enabled": true,
+    "custom_information": ""
+  },
+  "sidebar_visible": true,
+  "sidebar_width": 260,
+  "workspace_panel_width": 480,
+  "sidebar_collapsed_sections": {
+    "projects": false,
+    "simple_chats": false
+  },
+  "backup_dir": "",
+  "diff_view_mode": "inline",
+  "diff_fold_unchanged": true,
+  "diff_word_wrap": false
+}

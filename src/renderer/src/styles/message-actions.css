@@ -1,0 +1,125 @@
+.message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 7px;
+}
+
+.message-meta time {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--font-size-small);
+  text-align: right;
+}
+
+.message-actions {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 12px;
+  min-width: 0;
+}
+
+.message-actions button {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.message-actions button svg {
+  pointer-events: none;
+}
+
+.message-actions button:hover:not(:disabled),
+.message-actions button.active,
+.message-actions button[aria-expanded="true"] {
+  color: var(--text);
+}
+
+.message-actions button.error {
+  color: var(--danger);
+}
+
+.message-actions button:disabled {
+  cursor: default;
+}
+
+.message-actions button.active svg {
+  animation: speechIconPulse 1.05s ease-in-out infinite;
+}
+
+.message-actions button[aria-expanded="true"]::after {
+  display: none;
+}
+
+.message-row.user .message-meta {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: auto;
+  right: 0;
+  z-index: 2;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  width: max-content;
+  max-width: min(320px, 100vw - 32px);
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.message-row.user .bubble::after {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 100%;
+  height: 12px;
+  content: '';
+}
+
+.message-row.user .bubble:hover .message-meta,
+.message-row.user .message-meta:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.message-row.user .message-actions {
+  flex: 0 1 auto;
+  justify-content: flex-start;
+  gap: 6px;
+  order: 1;
+}
+
+.message-row.user .message-meta time {
+  order: 2;
+  margin-left: 6px;
+}
+
+@keyframes speechIconPulse {
+  0%, 100% {
+    opacity: 0.68;
+    transform: scale(0.92);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-actions button.active svg {
+    animation: none;
+  }
+}

@@ -1,0 +1,26 @@
+diff --git a/node_modules/deepagents/dist/langsmith-Ck9t7AGW.cjs b/node_modules/deepagents/dist/langsmith-Ck9t7AGW.cjs
+index 73358e2..31d6c7c 100644
+--- a/node_modules/deepagents/dist/langsmith-Ck9t7AGW.cjs
++++ b/node_modules/deepagents/dist/langsmith-Ck9t7AGW.cjs
+@@ -3222,7 +3222,7 @@ function createSummarizationMiddleware(options) {
+ 			/**
+ 			* Resolve the chat model and get max input tokens from its profile.
+ 			*/
+-			const resolvedModel = request.model ?? await getChatModel();
++			const resolvedModel = model !== undefined ? await getChatModel() : request.model ?? await getChatModel();
+ 			const maxInputTokens = getMaxInputTokens(resolvedModel);
+ 			applyModelDefaults(resolvedModel);
+ 			const totalTokens = countTotalTokens(effectiveMessages, request.systemMessage, request.tools);
+diff --git a/node_modules/deepagents/dist/langsmith-zm0ILQsV.js b/node_modules/deepagents/dist/langsmith-zm0ILQsV.js
+index b39a395..fed8ed9 100644
+--- a/node_modules/deepagents/dist/langsmith-zm0ILQsV.js
++++ b/node_modules/deepagents/dist/langsmith-zm0ILQsV.js
+@@ -3198,7 +3198,7 @@ function createSummarizationMiddleware(options) {
+ 			/**
+ 			* Resolve the chat model and get max input tokens from its profile.
+ 			*/
+-			const resolvedModel = request.model ?? await getChatModel();
++			const resolvedModel = model !== undefined ? await getChatModel() : request.model ?? await getChatModel();
+ 			const maxInputTokens = getMaxInputTokens(resolvedModel);
+ 			applyModelDefaults(resolvedModel);
+ 			const totalTokens = countTotalTokens(effectiveMessages, request.systemMessage, request.tools);

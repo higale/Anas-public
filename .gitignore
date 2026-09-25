@@ -1,0 +1,20 @@
+node_modules
+coverage
+out
+dist
+release
+release-build
+release-macos
+release-portable
+release-quality-build
+release-quality-portable
+/runtime-data/
+.env
+.env.*
+!.env.example
+# Bundled template only; personal values belong in the application data directory.
+!data/.env
+*.log
+__pycache__/
+*.py[cod]
+.DS_Store

@@ -1,0 +1,668 @@
+diff --git a/node_modules/langchain/dist/agents/ReactAgent.cjs b/node_modules/langchain/dist/agents/ReactAgent.cjs
+index c02cb04..e20285e 100644
+--- a/node_modules/langchain/dist/agents/ReactAgent.cjs
++++ b/node_modules/langchain/dist/agents/ReactAgent.cjs
+@@ -215,9 +215,9 @@ var ReactAgent = class ReactAgent {
+ 		const lastAfterModelNode = afterModelNodes.at(-1);
+ 		if (afterModelNodes.length > 0 && lastAfterModelNode) allNodeWorkflows.addEdge(require_AgentNode.AGENT_NODE_NAME, lastAfterModelNode.name);
+ 		else {
+-			const destinations = this.#getModelPaths(clientTools, false, hasToolsAvailable).map((p) => p === _langchain_langgraph.END ? exitNode : p);
++			const destinations = this.#getModelPaths(clientTools, false, hasToolsAvailable).map((p) => p === _langchain_langgraph.END ? exitNode : p === require_AgentNode.AGENT_NODE_NAME ? loopEntryNode : p);
+ 			if (destinations.length === 1) allNodeWorkflows.addEdge(require_AgentNode.AGENT_NODE_NAME, destinations[0]);
+-			else allNodeWorkflows.addConditionalEdges(require_AgentNode.AGENT_NODE_NAME, this.#createModelRouter(exitNode), destinations);
++			else allNodeWorkflows.addConditionalEdges(require_AgentNode.AGENT_NODE_NAME, this.#createAfterModelRouter(clientTools, false, exitNode, hasToolsAvailable, loopEntryNode), destinations);
+ 		}
+ 		for (let i = afterModelNodes.length - 1; i > 0; i--) {
+ 			const node = afterModelNodes[i];
+@@ -234,8 +234,8 @@ var ReactAgent = class ReactAgent {
+ 			const firstAfterModelNode = firstAfterModel.name;
+ 			const modelPaths = this.#getModelPaths(clientTools, true, hasToolsAvailable).filter((p) => p !== "tools" || hasToolsAvailable);
+ 			const allowJump = Boolean(firstAfterModel.allowed && firstAfterModel.allowed.length > 0);
+-			const destinations = modelPaths.map((p) => p === _langchain_langgraph.END ? exitNode : p);
+-			allNodeWorkflows.addConditionalEdges(firstAfterModelNode, this.#createAfterModelRouter(clientTools, allowJump, exitNode, hasToolsAvailable), destinations);
++			const destinations = Array.from(new Set([...modelPaths.map((p) => p === _langchain_langgraph.END ? exitNode : p), loopEntryNode]));
++			allNodeWorkflows.addConditionalEdges(firstAfterModelNode, this.#createAfterModelRouter(clientTools, allowJump, exitNode, hasToolsAvailable, loopEntryNode), destinations);
+ 		}
+ 		for (let i = afterAgentNodes.length - 1; i > 0; i--) {
+ 			const node = afterAgentNodes[i];
+@@ -349,7 +349,7 @@ var ReactAgent = class ReactAgent {
+ 	#getModelPaths(toolClasses, includeModelRequest = false, hasToolsAvailable = toolClasses.length > 0) {
+ 		const paths = [];
+ 		if (hasToolsAvailable) paths.push(require_ToolNode.TOOLS_NODE_NAME);
+-		if (includeModelRequest) paths.push(require_AgentNode.AGENT_NODE_NAME);
++		if (includeModelRequest || this.options.responseFormat) paths.push(require_AgentNode.AGENT_NODE_NAME);
+ 		paths.push(_langchain_langgraph.END);
+ 		return paths;
+ 	}
+@@ -365,33 +365,6 @@ var ReactAgent = class ReactAgent {
+ 		};
+ 	}
+ 	/**
+-	* Create routing function for model node conditional edges.
+-	* @param exitNode - The exit node to route to (could be after_agent or END)
+-	*/
+-	#createModelRouter(exitNode = _langchain_langgraph.END) {
+-		/**
+-		* determine if the agent should continue or not
+-		*/
+-		return (state) => {
+-			const lastMessage = state.messages.at(-1);
+-			if (!_langchain_core_messages.AIMessage.isInstance(lastMessage) || !lastMessage.tool_calls || lastMessage.tool_calls.length === 0) return exitNode;
+-			if (lastMessage.tool_calls.every((toolCall) => toolCall.name.startsWith("extract-"))) return exitNode;
+-			/**
+-			* The tool node processes a single message.
+-			*/
+-			if (this.#toolBehaviorVersion === "v1") return require_ToolNode.TOOLS_NODE_NAME;
+-			/**
+-			* Route to tools node (filter out any structured response tool calls)
+-			*/
+-			const regularToolCalls = lastMessage.tool_calls.filter((toolCall) => !toolCall.name.startsWith("extract-"));
+-			if (regularToolCalls.length === 0) return exitNode;
+-			return regularToolCalls.map((toolCall) => new _langchain_langgraph.Send(require_ToolNode.TOOLS_NODE_NAME, {
+-				...state,
+-				lg_tool_call: toolCall
+-			}));
+-		};
+-	}
+-	/**
+ 	* Create routing function for jumpTo functionality after afterModel hooks.
+ 	*
+ 	* This router checks if the `jumpTo` property is set in the state after afterModel middleware
+@@ -406,8 +379,7 @@ var ReactAgent = class ReactAgent {
+ 	* @param hasToolsAvailable - Whether tools are available (includes dynamic tools via middleware)
+ 	* @returns Router function that handles jumpTo logic and normal routing
+ 	*/
+-	#createAfterModelRouter(toolClasses, allowJump, exitNode, hasToolsAvailable = toolClasses.length > 0) {
+-		const hasStructuredResponse = Boolean(this.options.responseFormat);
++	#createAfterModelRouter(toolClasses, allowJump, exitNode, hasToolsAvailable = toolClasses.length > 0, loopEntryNode = require_AgentNode.AGENT_NODE_NAME) {
+ 		return (state) => {
+ 			const builtInState = state;
+ 			const messages = builtInState.messages;
+@@ -428,9 +400,9 @@ var ReactAgent = class ReactAgent {
+ 					jumpTo: void 0
+ 				});
+ 			}
+-			const toolMessages = messages.filter(_langchain_core_messages.ToolMessage.isInstance);
+ 			const lastAiMessage = messages.filter(_langchain_core_messages.AIMessage.isInstance).at(-1);
+-			const pendingToolCalls = lastAiMessage?.tool_calls?.filter((call) => !toolMessages.some((m) => m.tool_call_id === call.id));
++			const answered = new Set(messages.slice(messages.lastIndexOf(lastAiMessage) + 1).filter(_langchain_core_messages.ToolMessage.isInstance).map((message) => message.tool_call_id));
++			const pendingToolCalls = lastAiMessage?.tool_calls?.filter((call) => !answered.has(call.id));
+ 			if (pendingToolCalls && pendingToolCalls.length > 0) {
+ 				/**
+ 				* v1: route the full message to the ToolNode; it filters already-processed
+@@ -443,27 +415,8 @@ var ReactAgent = class ReactAgent {
+ 					lg_tool_call: toolCall
+ 				}));
+ 			}
+-			const hasStructuredResponseCalls = lastAiMessage?.tool_calls?.some((toolCall) => toolCall.name.startsWith("extract-"));
+-			if (pendingToolCalls && pendingToolCalls.length === 0 && !hasStructuredResponseCalls && hasStructuredResponse) return require_AgentNode.AGENT_NODE_NAME;
+-			if (!_langchain_core_messages.AIMessage.isInstance(lastMessage) || !lastMessage.tool_calls || lastMessage.tool_calls.length === 0) return exitNode;
+-			const hasOnlyStructuredResponseCalls = lastMessage.tool_calls.every((toolCall) => toolCall.name.startsWith("extract-"));
+-			const hasRegularToolCalls = lastMessage.tool_calls.some((toolCall) => !toolCall.name.startsWith("extract-"));
+-			if (hasOnlyStructuredResponseCalls || !hasRegularToolCalls) return exitNode;
+-			/**
+-			* v1: route the full AIMessage to a single ToolNode invocation so all
+-			* tool calls run concurrently via Promise.all.
+-			*
+-			* v2: dispatch each regular tool call as a separate Send task, matching
+-			* the behaviour of #createModelRouter when no afterModel middleware is
+-			* present.
+-			*/
+-			if (this.#toolBehaviorVersion === "v1") return require_ToolNode.TOOLS_NODE_NAME;
+-			const regularToolCalls = lastMessage.tool_calls.filter((toolCall) => !toolCall.name.startsWith("extract-"));
+-			if (regularToolCalls.length === 0) return exitNode;
+-			return regularToolCalls.map((toolCall) => new _langchain_langgraph.Send(require_ToolNode.TOOLS_NODE_NAME, {
+-				...state,
+-				lg_tool_call: toolCall
+-			}));
++			if (pendingToolCalls && pendingToolCalls.length === 0 && lastAiMessage?.tool_calls?.length) return loopEntryNode;
++			return exitNode;
+ 		};
+ 	}
+ 	/**
+diff --git a/node_modules/langchain/dist/agents/ReactAgent.js b/node_modules/langchain/dist/agents/ReactAgent.js
+index d19dc5c..7f6f640 100644
+--- a/node_modules/langchain/dist/agents/ReactAgent.js
++++ b/node_modules/langchain/dist/agents/ReactAgent.js
+@@ -215,9 +215,9 @@ var ReactAgent = class ReactAgent {
+ 		const lastAfterModelNode = afterModelNodes.at(-1);
+ 		if (afterModelNodes.length > 0 && lastAfterModelNode) allNodeWorkflows.addEdge(AGENT_NODE_NAME, lastAfterModelNode.name);
+ 		else {
+-			const destinations = this.#getModelPaths(clientTools, false, hasToolsAvailable).map((p) => p === END ? exitNode : p);
++			const destinations = this.#getModelPaths(clientTools, false, hasToolsAvailable).map((p) => p === END ? exitNode : p === AGENT_NODE_NAME ? loopEntryNode : p);
+ 			if (destinations.length === 1) allNodeWorkflows.addEdge(AGENT_NODE_NAME, destinations[0]);
+-			else allNodeWorkflows.addConditionalEdges(AGENT_NODE_NAME, this.#createModelRouter(exitNode), destinations);
++			else allNodeWorkflows.addConditionalEdges(AGENT_NODE_NAME, this.#createAfterModelRouter(clientTools, false, exitNode, hasToolsAvailable, loopEntryNode), destinations);
+ 		}
+ 		for (let i = afterModelNodes.length - 1; i > 0; i--) {
+ 			const node = afterModelNodes[i];
+@@ -234,8 +234,8 @@ var ReactAgent = class ReactAgent {
+ 			const firstAfterModelNode = firstAfterModel.name;
+ 			const modelPaths = this.#getModelPaths(clientTools, true, hasToolsAvailable).filter((p) => p !== "tools" || hasToolsAvailable);
+ 			const allowJump = Boolean(firstAfterModel.allowed && firstAfterModel.allowed.length > 0);
+-			const destinations = modelPaths.map((p) => p === END ? exitNode : p);
+-			allNodeWorkflows.addConditionalEdges(firstAfterModelNode, this.#createAfterModelRouter(clientTools, allowJump, exitNode, hasToolsAvailable), destinations);
++			const destinations = Array.from(new Set([...modelPaths.map((p) => p === END ? exitNode : p), loopEntryNode]));
++			allNodeWorkflows.addConditionalEdges(firstAfterModelNode, this.#createAfterModelRouter(clientTools, allowJump, exitNode, hasToolsAvailable, loopEntryNode), destinations);
+ 		}
+ 		for (let i = afterAgentNodes.length - 1; i > 0; i--) {
+ 			const node = afterAgentNodes[i];
+@@ -349,7 +349,7 @@ var ReactAgent = class ReactAgent {
+ 	#getModelPaths(toolClasses, includeModelRequest = false, hasToolsAvailable = toolClasses.length > 0) {
+ 		const paths = [];
+ 		if (hasToolsAvailable) paths.push(TOOLS_NODE_NAME);
+-		if (includeModelRequest) paths.push(AGENT_NODE_NAME);
++		if (includeModelRequest || this.options.responseFormat) paths.push(AGENT_NODE_NAME);
+ 		paths.push(END);
+ 		return paths;
+ 	}
+@@ -365,33 +365,6 @@ var ReactAgent = class ReactAgent {
+ 		};
+ 	}
+ 	/**
+-	* Create routing function for model node conditional edges.
+-	* @param exitNode - The exit node to route to (could be after_agent or END)
+-	*/
+-	#createModelRouter(exitNode = END) {
+-		/**
+-		* determine if the agent should continue or not
+-		*/
+-		return (state) => {
+-			const lastMessage = state.messages.at(-1);
+-			if (!AIMessage.isInstance(lastMessage) || !lastMessage.tool_calls || lastMessage.tool_calls.length === 0) return exitNode;
+-			if (lastMessage.tool_calls.every((toolCall) => toolCall.name.startsWith("extract-"))) return exitNode;
+-			/**
+-			* The tool node processes a single message.
+-			*/
+-			if (this.#toolBehaviorVersion === "v1") return TOOLS_NODE_NAME;
+-			/**
+-			* Route to tools node (filter out any structured response tool calls)
+-			*/
+-			const regularToolCalls = lastMessage.tool_calls.filter((toolCall) => !toolCall.name.startsWith("extract-"));
+-			if (regularToolCalls.length === 0) return exitNode;
+-			return regularToolCalls.map((toolCall) => new Send(TOOLS_NODE_NAME, {
+-				...state,
+-				lg_tool_call: toolCall
+-			}));
+-		};
+-	}
+-	/**
+ 	* Create routing function for jumpTo functionality after afterModel hooks.
+ 	*
+ 	* This router checks if the `jumpTo` property is set in the state after afterModel middleware
+@@ -406,8 +379,7 @@ var ReactAgent = class ReactAgent {
+ 	* @param hasToolsAvailable - Whether tools are available (includes dynamic tools via middleware)
+ 	* @returns Router function that handles jumpTo logic and normal routing
+ 	*/
+-	#createAfterModelRouter(toolClasses, allowJump, exitNode, hasToolsAvailable = toolClasses.length > 0) {
+-		const hasStructuredResponse = Boolean(this.options.responseFormat);
++	#createAfterModelRouter(toolClasses, allowJump, exitNode, hasToolsAvailable = toolClasses.length > 0, loopEntryNode = AGENT_NODE_NAME) {
+ 		return (state) => {
+ 			const builtInState = state;
+ 			const messages = builtInState.messages;
+@@ -428,9 +400,9 @@ var ReactAgent = class ReactAgent {
+ 					jumpTo: void 0
+ 				});
+ 			}
+-			const toolMessages = messages.filter(ToolMessage.isInstance);
+ 			const lastAiMessage = messages.filter(AIMessage.isInstance).at(-1);
+-			const pendingToolCalls = lastAiMessage?.tool_calls?.filter((call) => !toolMessages.some((m) => m.tool_call_id === call.id));
++			const answered = new Set(messages.slice(messages.lastIndexOf(lastAiMessage) + 1).filter(ToolMessage.isInstance).map((message) => message.tool_call_id));
++			const pendingToolCalls = lastAiMessage?.tool_calls?.filter((call) => !answered.has(call.id));
+ 			if (pendingToolCalls && pendingToolCalls.length > 0) {
+ 				/**
+ 				* v1: route the full message to the ToolNode; it filters already-processed
+@@ -443,27 +415,8 @@ var ReactAgent = class ReactAgent {
+ 					lg_tool_call: toolCall
+ 				}));
+ 			}
+-			const hasStructuredResponseCalls = lastAiMessage?.tool_calls?.some((toolCall) => toolCall.name.startsWith("extract-"));
+-			if (pendingToolCalls && pendingToolCalls.length === 0 && !hasStructuredResponseCalls && hasStructuredResponse) return AGENT_NODE_NAME;
+-			if (!AIMessage.isInstance(lastMessage) || !lastMessage.tool_calls || lastMessage.tool_calls.length === 0) return exitNode;
+-			const hasOnlyStructuredResponseCalls = lastMessage.tool_calls.every((toolCall) => toolCall.name.startsWith("extract-"));
+-			const hasRegularToolCalls = lastMessage.tool_calls.some((toolCall) => !toolCall.name.startsWith("extract-"));
+-			if (hasOnlyStructuredResponseCalls || !hasRegularToolCalls) return exitNode;
+-			/**
+-			* v1: route the full AIMessage to a single ToolNode invocation so all
+-			* tool calls run concurrently via Promise.all.
+-			*
+-			* v2: dispatch each regular tool call as a separate Send task, matching
+-			* the behaviour of #createModelRouter when no afterModel middleware is
+-			* present.
+-			*/
+-			if (this.#toolBehaviorVersion === "v1") return TOOLS_NODE_NAME;
+-			const regularToolCalls = lastMessage.tool_calls.filter((toolCall) => !toolCall.name.startsWith("extract-"));
+-			if (regularToolCalls.length === 0) return exitNode;
+-			return regularToolCalls.map((toolCall) => new Send(TOOLS_NODE_NAME, {
+-				...state,
+-				lg_tool_call: toolCall
+-			}));
++			if (pendingToolCalls && pendingToolCalls.length === 0 && lastAiMessage?.tool_calls?.length) return loopEntryNode;
++			return exitNode;
+ 		};
+ 	}
+ 	/**
+diff --git a/node_modules/langchain/dist/agents/middleware/hitl.cjs b/node_modules/langchain/dist/agents/middleware/hitl.cjs
+index 5b3e99d..453420a 100644
+--- a/node_modules/langchain/dist/agents/middleware/hitl.cjs
++++ b/node_modules/langchain/dist/agents/middleware/hitl.cjs
+@@ -412,7 +412,6 @@ function humanInTheLoopMiddleware(options) {
+ 		name: "HumanInTheLoopMiddleware",
+ 		contextSchema,
+ 		afterModel: {
+-			canJumpTo: ["model"],
+ 			hook: async (state, runtime) => {
+ 				const config = (0, _langchain_core_utils_types.interopParse)(contextSchema, {
+ 					...options,
+@@ -426,6 +425,7 @@ function humanInTheLoopMiddleware(options) {
+ 				*/
+ 				const lastMessage = [...messages].reverse().find((msg) => _langchain_core_messages.AIMessage.isInstance(msg));
+ 				if (!lastMessage || !lastMessage.tool_calls?.length) return;
++				const answered = new Set(messages.slice(messages.lastIndexOf(lastMessage) + 1).filter(_langchain_core_messages.ToolMessage.isInstance).map((message) => message.tool_call_id));
+ 				/**
+ 				* If the user omits the interruptOn config, we don't do anything.
+ 				*/
+@@ -438,8 +438,8 @@ function humanInTheLoopMiddleware(options) {
+ 					if (toolConfig === true) resolvedConfigs[toolName] = { allowedDecisions: [...ALLOWED_DECISIONS] };
+ 				} else if (toolConfig.allowedDecisions) resolvedConfigs[toolName] = toolConfig;
+ 				const interruptToolCalls = [];
+-				const autoApprovedToolCalls = [];
+ 				for (const toolCall of lastMessage.tool_calls) {
++					if (answered.has(toolCall.id)) continue;
+ 					const interruptConfig = resolvedConfigs[toolCall.name];
+ 					/**
+ 					* A tool call is interrupted only when it has a resolved config and its
+@@ -447,7 +447,6 @@ function humanInTheLoopMiddleware(options) {
+ 					* auto-approved.
+ 					*/
+ 					if (interruptConfig && await shouldInterrupt(toolCall, interruptConfig, state, runtime)) interruptToolCalls.push(toolCall);
+-					else autoApprovedToolCalls.push(toolCall);
+ 				}
+ 				/**
+ 				* No interrupt tool calls, so we can just return.
+@@ -479,7 +478,7 @@ function humanInTheLoopMiddleware(options) {
+ 				* Validate that the number of decisions matches the number of interrupt tool calls
+ 				*/
+ 				if (decisions.length !== interruptToolCalls.length) throw new Error(`Number of human decisions (${decisions.length}) does not match number of hanging tool calls (${interruptToolCalls.length}).`);
+-				const revisedToolCalls = [...autoApprovedToolCalls];
++				const revisedToolCalls = new Map();
+ 				const artificialToolMessages = [];
+ 				const hasRejectedToolCalls = decisions.some((decision) => decision.type === "reject");
+ 				/**
+@@ -490,18 +489,25 @@ function humanInTheLoopMiddleware(options) {
+ 					const toolCall = interruptToolCalls[i];
+ 					const interruptConfig = resolvedConfigs[toolCall.name];
+ 					const { revisedToolCall, toolMessage } = processDecision(decision, toolCall, interruptConfig);
+-					if (revisedToolCall && (!hasRejectedToolCalls || decision.type === "reject")) revisedToolCalls.push(revisedToolCall);
++					if (revisedToolCall) revisedToolCalls.set(toolCall, revisedToolCall);
+ 					if (toolMessage) artificialToolMessages.push(toolMessage);
+ 				}
+-				/**
+-				* Update the AI message to only include approved tool calls
+-				*/
+-				if (_langchain_core_messages.AIMessage.isInstance(lastMessage)) lastMessage.tool_calls = revisedToolCalls;
+-				const jumpTo = hasRejectedToolCalls ? "model" : void 0;
+-				return {
+-					messages: [lastMessage, ...artificialToolMessages],
+-					jumpTo
+-				};
++				// Preserve every original call and its position, including approved siblings
++				// withheld when another action is rejected. All must have a result.
++				lastMessage.tool_calls = lastMessage.tool_calls.map((call) => revisedToolCalls.get(call) ?? call);
++				if (hasRejectedToolCalls) {
++					for (const message of artificialToolMessages) answered.add(message.tool_call_id);
++					for (const call of lastMessage.tool_calls) {
++						if (answered.has(call.id)) continue;
++						artificialToolMessages.push(new _langchain_core_messages.ToolMessage({
++							content: "NOT EXECUTED: Another action in this batch was rejected. Reconsider this operation with the user's feedback before calling it again.",
++							name: call.name, tool_call_id: call.id, status: "error"
++						}));
++					}
++				}
++				// Normal routing finishes the remaining afterModel hooks and re-enters
++				// beforeModel checks once every call has a result.
++				return { messages: [lastMessage, ...artificialToolMessages] };
+ 			}
+ 		}
+ 	});
+diff --git a/node_modules/langchain/dist/agents/middleware/hitl.js b/node_modules/langchain/dist/agents/middleware/hitl.js
+index d21da54..a8092b4 100644
+--- a/node_modules/langchain/dist/agents/middleware/hitl.js
++++ b/node_modules/langchain/dist/agents/middleware/hitl.js
+@@ -412,7 +412,6 @@ function humanInTheLoopMiddleware(options) {
+ 		name: "HumanInTheLoopMiddleware",
+ 		contextSchema,
+ 		afterModel: {
+-			canJumpTo: ["model"],
+ 			hook: async (state, runtime) => {
+ 				const config = interopParse(contextSchema, {
+ 					...options,
+@@ -426,6 +425,7 @@ function humanInTheLoopMiddleware(options) {
+ 				*/
+ 				const lastMessage = [...messages].reverse().find((msg) => AIMessage.isInstance(msg));
+ 				if (!lastMessage || !lastMessage.tool_calls?.length) return;
++				const answered = new Set(messages.slice(messages.lastIndexOf(lastMessage) + 1).filter(ToolMessage.isInstance).map((message) => message.tool_call_id));
+ 				/**
+ 				* If the user omits the interruptOn config, we don't do anything.
+ 				*/
+@@ -438,8 +438,8 @@ function humanInTheLoopMiddleware(options) {
+ 					if (toolConfig === true) resolvedConfigs[toolName] = { allowedDecisions: [...ALLOWED_DECISIONS] };
+ 				} else if (toolConfig.allowedDecisions) resolvedConfigs[toolName] = toolConfig;
+ 				const interruptToolCalls = [];
+-				const autoApprovedToolCalls = [];
+ 				for (const toolCall of lastMessage.tool_calls) {
++					if (answered.has(toolCall.id)) continue;
+ 					const interruptConfig = resolvedConfigs[toolCall.name];
+ 					/**
+ 					* A tool call is interrupted only when it has a resolved config and its
+@@ -447,7 +447,6 @@ function humanInTheLoopMiddleware(options) {
+ 					* auto-approved.
+ 					*/
+ 					if (interruptConfig && await shouldInterrupt(toolCall, interruptConfig, state, runtime)) interruptToolCalls.push(toolCall);
+-					else autoApprovedToolCalls.push(toolCall);
+ 				}
+ 				/**
+ 				* No interrupt tool calls, so we can just return.
+@@ -479,7 +478,7 @@ function humanInTheLoopMiddleware(options) {
+ 				* Validate that the number of decisions matches the number of interrupt tool calls
+ 				*/
+ 				if (decisions.length !== interruptToolCalls.length) throw new Error(`Number of human decisions (${decisions.length}) does not match number of hanging tool calls (${interruptToolCalls.length}).`);
+-				const revisedToolCalls = [...autoApprovedToolCalls];
++				const revisedToolCalls = new Map();
+ 				const artificialToolMessages = [];
+ 				const hasRejectedToolCalls = decisions.some((decision) => decision.type === "reject");
+ 				/**
+@@ -490,18 +489,25 @@ function humanInTheLoopMiddleware(options) {
+ 					const toolCall = interruptToolCalls[i];
+ 					const interruptConfig = resolvedConfigs[toolCall.name];
+ 					const { revisedToolCall, toolMessage } = processDecision(decision, toolCall, interruptConfig);
+-					if (revisedToolCall && (!hasRejectedToolCalls || decision.type === "reject")) revisedToolCalls.push(revisedToolCall);
++					if (revisedToolCall) revisedToolCalls.set(toolCall, revisedToolCall);
+ 					if (toolMessage) artificialToolMessages.push(toolMessage);
+ 				}
+-				/**
+-				* Update the AI message to only include approved tool calls
+-				*/
+-				if (AIMessage.isInstance(lastMessage)) lastMessage.tool_calls = revisedToolCalls;
+-				const jumpTo = hasRejectedToolCalls ? "model" : void 0;
+-				return {
+-					messages: [lastMessage, ...artificialToolMessages],
+-					jumpTo
+-				};
++				// Preserve every original call and its position, including approved siblings
++				// withheld when another action is rejected. All must have a result.
++				lastMessage.tool_calls = lastMessage.tool_calls.map((call) => revisedToolCalls.get(call) ?? call);
++				if (hasRejectedToolCalls) {
++					for (const message of artificialToolMessages) answered.add(message.tool_call_id);
++					for (const call of lastMessage.tool_calls) {
++						if (answered.has(call.id)) continue;
++						artificialToolMessages.push(new ToolMessage({
++							content: "NOT EXECUTED: Another action in this batch was rejected. Reconsider this operation with the user's feedback before calling it again.",
++							name: call.name, tool_call_id: call.id, status: "error"
++						}));
++					}
++				}
++				// Normal routing finishes the remaining afterModel hooks and re-enters
++				// beforeModel checks once every call has a result.
++				return { messages: [lastMessage, ...artificialToolMessages] };
+ 			}
+ 		}
+ 	});
+diff --git a/node_modules/langchain/dist/agents/middleware/todoListMiddleware.cjs b/node_modules/langchain/dist/agents/middleware/todoListMiddleware.cjs
+index 4823dda..5f14689 100644
+--- a/node_modules/langchain/dist/agents/middleware/todoListMiddleware.cjs
++++ b/node_modules/langchain/dist/agents/middleware/todoListMiddleware.cjs
+@@ -326,7 +326,8 @@ function todoListMiddleware(options) {
+ 			/**
+ 			* Count write_todos tool calls
+ 			*/
+-			const writeTodosCalls = lastAiMsg.tool_calls.filter((tc) => tc.name === writeTodos.name);
++			const answered = new Set(messages.slice(messages.lastIndexOf(lastAiMsg) + 1).filter(_langchain_core_messages.ToolMessage.isInstance).map((message) => message.tool_call_id));
++			const writeTodosCalls = lastAiMsg.tool_calls.filter((tc) => tc.name === writeTodos.name && !answered.has(tc.id));
+ 			if (writeTodosCalls.length > 1)
+  /**
+ 			* Keep the tool calls in the AI message but return error messages
+diff --git a/node_modules/langchain/dist/agents/middleware/todoListMiddleware.js b/node_modules/langchain/dist/agents/middleware/todoListMiddleware.js
+index 4eae4a5..d49e6a1 100644
+--- a/node_modules/langchain/dist/agents/middleware/todoListMiddleware.js
++++ b/node_modules/langchain/dist/agents/middleware/todoListMiddleware.js
+@@ -326,7 +326,8 @@ function todoListMiddleware(options) {
+ 			/**
+ 			* Count write_todos tool calls
+ 			*/
+-			const writeTodosCalls = lastAiMsg.tool_calls.filter((tc) => tc.name === writeTodos.name);
++			const answered = new Set(messages.slice(messages.lastIndexOf(lastAiMsg) + 1).filter(ToolMessage.isInstance).map((message) => message.tool_call_id));
++			const writeTodosCalls = lastAiMsg.tool_calls.filter((tc) => tc.name === writeTodos.name && !answered.has(tc.id));
+ 			if (writeTodosCalls.length > 1)
+  /**
+ 			* Keep the tool calls in the AI message but return error messages
+diff --git a/node_modules/langchain/dist/agents/nodes/AgentNode.cjs b/node_modules/langchain/dist/agents/nodes/AgentNode.cjs
+index 8d28625..f1feb6e 100644
+--- a/node_modules/langchain/dist/agents/nodes/AgentNode.cjs
++++ b/node_modules/langchain/dist/agents/nodes/AgentNode.cjs
+@@ -357,7 +357,7 @@ var AgentNode = class extends require_RunnableCallable.RunnableCallable {
+ 	*/
+ 	#handleMultipleStructuredOutputs(response, toolCalls, responseFormat) {
+ 		const multipleStructuredOutputsError = new require_errors.MultipleStructuredOutputsError(toolCalls.map((call) => call.name));
+-		return this.#handleToolStrategyError(multipleStructuredOutputsError, response, toolCalls[0], responseFormat);
++		return this.#handleToolStrategyError(multipleStructuredOutputsError, response, responseFormat);
+ 	}
+ 	/**
+ 	* If the model returns a single structured output, we need to handle it.
+@@ -381,10 +381,10 @@ var AgentNode = class extends require_RunnableCallable.RunnableCallable {
+ 				]
+ 			};
+ 		} catch (error) {
+-			return this.#handleToolStrategyError(error, response, toolCall, responseFormat);
++			return this.#handleToolStrategyError(error, response, responseFormat);
+ 		}
+ 	}
+-	async #handleToolStrategyError(error, response, toolCall, responseFormat) {
++	async #handleToolStrategyError(error, response, responseFormat) {
+ 		/**
+ 		* Using the `errorHandler` option of the first `ToolStrategy` entry is sufficient here.
+ 		* There is technically only one `ToolStrategy` entry in `structuredToolInfo` if the user
+@@ -393,8 +393,14 @@ var AgentNode = class extends require_RunnableCallable.RunnableCallable {
+ 		* with the same `handleError` option.
+ 		*/
+ 		const errorHandler = Object.values(responseFormat.tools).at(0)?.options?.handleError;
+-		const toolCallId = toolCall.id;
+-		if (!toolCallId) throw new Error("Tool call ID is required to handle tool output errors. Please provide a tool call ID.");
++		const failedCalls = response.tool_calls.filter((call) => Object.hasOwn(responseFormat.tools, call.name));
++		if (failedCalls.some((call) => !call.id)) throw new Error("Tool call ID is required to handle tool output errors. Please provide a tool call ID.");
++		// The graph's existing edges run afterModel hooks and route one retry.
++		const errorUpdate = (content) => new _langchain_langgraph.Command({
++			update: { messages: [response, ...failedCalls.map((call) => new _langchain_core_messages.ToolMessage({
++				content, name: call.name, tool_call_id: call.id, status: "error"
++			}))] }
++		});
+ 		/**
+ 		* Default behavior: retry if `errorHandler` is undefined or truthy.
+ 		* Only throw if explicitly set to `false`.
+@@ -403,47 +409,23 @@ var AgentNode = class extends require_RunnableCallable.RunnableCallable {
+ 		/**
+ 		* retry if:
+ 		*/
+-		if (errorHandler === void 0 || typeof errorHandler === "boolean" && errorHandler || Array.isArray(errorHandler) && errorHandler.some((h) => h instanceof require_errors.MultipleStructuredOutputsError)) return new _langchain_langgraph.Command({
+-			update: { messages: [response, new _langchain_core_messages.ToolMessage({
+-				content: error.message,
+-				tool_call_id: toolCallId
+-			})] },
+-			goto: AGENT_NODE_NAME
+-		});
++		if (errorHandler === void 0 || typeof errorHandler === "boolean" && errorHandler || Array.isArray(errorHandler) && errorHandler.some((h) => h instanceof require_errors.MultipleStructuredOutputsError)) return errorUpdate(error.message);
+ 		/**
+ 		* if `errorHandler` is a string, retry the tool call with given string
+ 		*/
+-		if (typeof errorHandler === "string") return new _langchain_langgraph.Command({
+-			update: { messages: [response, new _langchain_core_messages.ToolMessage({
+-				content: errorHandler,
+-				tool_call_id: toolCallId
+-			})] },
+-			goto: AGENT_NODE_NAME
+-		});
++		if (typeof errorHandler === "string") return errorUpdate(errorHandler);
+ 		/**
+ 		* if `errorHandler` is a function, retry the tool call with the function
+ 		*/
+ 		if (typeof errorHandler === "function") {
+ 			const content = await errorHandler(error);
+ 			if (typeof content !== "string") throw new Error("Error handler must return a string.");
+-			return new _langchain_langgraph.Command({
+-				update: { messages: [response, new _langchain_core_messages.ToolMessage({
+-					content,
+-					tool_call_id: toolCallId
+-				})] },
+-				goto: AGENT_NODE_NAME
+-			});
++			return errorUpdate(content);
+ 		}
+ 		/**
+ 		* Default: retry if we reach here
+ 		*/
+-		return new _langchain_langgraph.Command({
+-			update: { messages: [response, new _langchain_core_messages.ToolMessage({
+-				content: error.message,
+-				tool_call_id: toolCallId
+-			})] },
+-			goto: AGENT_NODE_NAME
+-		});
++		return errorUpdate(error.message);
+ 	}
+ 	#areMoreStepsNeeded(state, response) {
+ 		const allToolsReturnDirect = _langchain_core_messages.AIMessage.isInstance(response) && response.tool_calls?.every((call) => this.#options.shouldReturnDirect.has(call.name));
+diff --git a/node_modules/langchain/dist/agents/nodes/AgentNode.js b/node_modules/langchain/dist/agents/nodes/AgentNode.js
+index f011e61..7272174 100644
+--- a/node_modules/langchain/dist/agents/nodes/AgentNode.js
++++ b/node_modules/langchain/dist/agents/nodes/AgentNode.js
+@@ -357,7 +357,7 @@ var AgentNode = class extends RunnableCallable {
+ 	*/
+ 	#handleMultipleStructuredOutputs(response, toolCalls, responseFormat) {
+ 		const multipleStructuredOutputsError = new MultipleStructuredOutputsError(toolCalls.map((call) => call.name));
+-		return this.#handleToolStrategyError(multipleStructuredOutputsError, response, toolCalls[0], responseFormat);
++		return this.#handleToolStrategyError(multipleStructuredOutputsError, response, responseFormat);
+ 	}
+ 	/**
+ 	* If the model returns a single structured output, we need to handle it.
+@@ -381,10 +381,10 @@ var AgentNode = class extends RunnableCallable {
+ 				]
+ 			};
+ 		} catch (error) {
+-			return this.#handleToolStrategyError(error, response, toolCall, responseFormat);
++			return this.#handleToolStrategyError(error, response, responseFormat);
+ 		}
+ 	}
+-	async #handleToolStrategyError(error, response, toolCall, responseFormat) {
++	async #handleToolStrategyError(error, response, responseFormat) {
+ 		/**
+ 		* Using the `errorHandler` option of the first `ToolStrategy` entry is sufficient here.
+ 		* There is technically only one `ToolStrategy` entry in `structuredToolInfo` if the user
+@@ -393,8 +393,14 @@ var AgentNode = class extends RunnableCallable {
+ 		* with the same `handleError` option.
+ 		*/
+ 		const errorHandler = Object.values(responseFormat.tools).at(0)?.options?.handleError;
+-		const toolCallId = toolCall.id;
+-		if (!toolCallId) throw new Error("Tool call ID is required to handle tool output errors. Please provide a tool call ID.");
++		const failedCalls = response.tool_calls.filter((call) => Object.hasOwn(responseFormat.tools, call.name));
++		if (failedCalls.some((call) => !call.id)) throw new Error("Tool call ID is required to handle tool output errors. Please provide a tool call ID.");
++		// The graph's existing edges run afterModel hooks and route one retry.
++		const errorUpdate = (content) => new Command({
++			update: { messages: [response, ...failedCalls.map((call) => new ToolMessage({
++				content, name: call.name, tool_call_id: call.id, status: "error"
++			}))] }
++		});
+ 		/**
+ 		* Default behavior: retry if `errorHandler` is undefined or truthy.
+ 		* Only throw if explicitly set to `false`.
+@@ -403,47 +409,23 @@ var AgentNode = class extends RunnableCallable {
+ 		/**
+ 		* retry if:
+ 		*/
+-		if (errorHandler === void 0 || typeof errorHandler === "boolean" && errorHandler || Array.isArray(errorHandler) && errorHandler.some((h) => h instanceof MultipleStructuredOutputsError)) return new Command({
+-			update: { messages: [response, new ToolMessage({
+-				content: error.message,
+-				tool_call_id: toolCallId
+-			})] },
+-			goto: AGENT_NODE_NAME
+-		});
++		if (errorHandler === void 0 || typeof errorHandler === "boolean" && errorHandler || Array.isArray(errorHandler) && errorHandler.some((h) => h instanceof MultipleStructuredOutputsError)) return errorUpdate(error.message);
+ 		/**
+ 		* if `errorHandler` is a string, retry the tool call with given string
+ 		*/
+-		if (typeof errorHandler === "string") return new Command({
+-			update: { messages: [response, new ToolMessage({
+-				content: errorHandler,
+-				tool_call_id: toolCallId
+-			})] },
+-			goto: AGENT_NODE_NAME
+-		});
++		if (typeof errorHandler === "string") return errorUpdate(errorHandler);
+ 		/**
+ 		* if `errorHandler` is a function, retry the tool call with the function
+ 		*/
+ 		if (typeof errorHandler === "function") {
+ 			const content = await errorHandler(error);
+ 			if (typeof content !== "string") throw new Error("Error handler must return a string.");
+-			return new Command({
+-				update: { messages: [response, new ToolMessage({
+-					content,
+-					tool_call_id: toolCallId
+-				})] },
+-				goto: AGENT_NODE_NAME
+-			});
++			return errorUpdate(content);
+ 		}
+ 		/**
+ 		* Default: retry if we reach here
+ 		*/
+-		return new Command({
+-			update: { messages: [response, new ToolMessage({
+-				content: error.message,
+-				tool_call_id: toolCallId
+-			})] },
+-			goto: AGENT_NODE_NAME
+-		});
++		return errorUpdate(error.message);
+ 	}
+ 	#areMoreStepsNeeded(state, response) {
+ 		const allToolsReturnDirect = AIMessage.isInstance(response) && response.tool_calls?.every((call) => this.#options.shouldReturnDirect.has(call.name));
+diff --git a/node_modules/langchain/dist/agents/nodes/ToolNode.cjs b/node_modules/langchain/dist/agents/nodes/ToolNode.cjs
+index bb92355..f4033e2 100644
+--- a/node_modules/langchain/dist/agents/nodes/ToolNode.cjs
++++ b/node_modules/langchain/dist/agents/nodes/ToolNode.cjs
+@@ -314,7 +314,6 @@ var ToolNode = class extends require_RunnableCallable.RunnableCallable {
+ 			if (isBaseMessageArray(state)) messages = state;
+ 			else if (isMessagesState(state)) messages = state.messages;
+ 			else throw new Error("ToolNode only accepts BaseMessage[] or { messages: BaseMessage[] } as input.");
+-			const toolMessageIds = new Set(messages.filter((msg) => msg.getType() === "tool").map((msg) => msg.tool_call_id));
+ 			let aiMessage;
+ 			for (let i = messages.length - 1; i >= 0; i -= 1) {
+ 				const message = messages[i];
+@@ -324,6 +323,7 @@ var ToolNode = class extends require_RunnableCallable.RunnableCallable {
+ 				}
+ 			}
+ 			if (!_langchain_core_messages.AIMessage.isInstance(aiMessage)) throw new Error("ToolNode only accepts AIMessages as input.");
++			const toolMessageIds = new Set(messages.slice(messages.lastIndexOf(aiMessage) + 1).filter(_langchain_core_messages.ToolMessage.isInstance).map((message) => message.tool_call_id));
+ 			outputs = await Promise.all(aiMessage.tool_calls?.filter((call) => call.id == null || !toolMessageIds.has(call.id)).map((call) => this.runTool(call, config, state)) ?? []);
+ 		}
+ 		if (!outputs.some(_langchain_langgraph.isCommand)) return Array.isArray(state) ? outputs : { messages: outputs };
+diff --git a/node_modules/langchain/dist/agents/nodes/ToolNode.js b/node_modules/langchain/dist/agents/nodes/ToolNode.js
+index 0df28ae..736edd7 100644
+--- a/node_modules/langchain/dist/agents/nodes/ToolNode.js
++++ b/node_modules/langchain/dist/agents/nodes/ToolNode.js
+@@ -314,7 +314,6 @@ var ToolNode = class extends RunnableCallable {
+ 			if (isBaseMessageArray(state)) messages = state;
+ 			else if (isMessagesState(state)) messages = state.messages;
+ 			else throw new Error("ToolNode only accepts BaseMessage[] or { messages: BaseMessage[] } as input.");
+-			const toolMessageIds = new Set(messages.filter((msg) => msg.getType() === "tool").map((msg) => msg.tool_call_id));
+ 			let aiMessage;
+ 			for (let i = messages.length - 1; i >= 0; i -= 1) {
+ 				const message = messages[i];
+@@ -324,6 +323,7 @@ var ToolNode = class extends RunnableCallable {
+ 				}
+ 			}
+ 			if (!AIMessage.isInstance(aiMessage)) throw new Error("ToolNode only accepts AIMessages as input.");
++			const toolMessageIds = new Set(messages.slice(messages.lastIndexOf(aiMessage) + 1).filter(ToolMessage.isInstance).map((message) => message.tool_call_id));
+ 			outputs = await Promise.all(aiMessage.tool_calls?.filter((call) => call.id == null || !toolMessageIds.has(call.id)).map((call) => this.runTool(call, config, state)) ?? []);
+ 		}
+ 		if (!outputs.some(isCommand)) return Array.isArray(state) ? outputs : { messages: outputs };

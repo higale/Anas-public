@@ -1,0 +1,49 @@
+.notice-toaster {
+  --normal-bg: var(--bg-surface);
+  --normal-border: var(--border-muted);
+  --normal-text: var(--text);
+  --success-text: var(--success);
+  --info-text: var(--accent);
+  --warning-text: var(--warning);
+  --error-text: var(--danger);
+  --border-radius: 8px;
+  font-family: inherit;
+}
+
+.notice-title {
+  color: var(--text);
+  font-size: var(--font-size-ui);
+  font-weight: 650;
+  line-height: var(--font-line-height-ui);
+}
+
+/* Modal dialogs disable body pointer events; notifications remain interactive. */
+.notice-toast {
+  pointer-events: auto;
+}
+
+.notice-description {
+  color: var(--text-secondary);
+  font-size: var(--font-size-small);
+  line-height: var(--font-line-height-small);
+}
+
+.notice-close {
+  color: var(--text-muted);
+}
+
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: var(--success);
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: var(--accent);
+}
+
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: var(--warning);
+}
+
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--danger);
+}

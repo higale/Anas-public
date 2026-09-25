@@ -1,0 +1,19 @@
+{
+  "provider_defaults": {
+    "parameters": {}
+  },
+  "model_defaults": {
+    "parameters": {},
+    "parameter_preset_mode": "protocol_default",
+    "capabilities": {
+      "vision": true,
+      "tool_use": true
+    },
+    "stream": true,
+    "max_context_tokens": 256000,
+    "max_output_tokens": 16000,
+    "context_compression_threshold": 0.8,
+    "context_compression_enabled": true
+  },
+  "providers": []
+}

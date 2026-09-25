@@ -1,0 +1,9 @@
+.refresh-button.loading svg {
+  animation: refreshButtonSpin 0.85s linear infinite;
+}
+
+@keyframes refreshButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

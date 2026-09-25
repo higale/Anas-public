@@ -1,0 +1,14 @@
+{
+  "id": "example-file-sha256",
+  "name": "file_sha256",
+  "description": "计算本地文件的 SHA-256，返回 JSON 格式的绝对路径、读取字节数和摘要。文件分块读取，不加载整个文件。",
+  "input_schema": {
+    "type": "object",
+    "properties": { "path": { "type": "string", "minLength": 1, "description": "文件的绝对路径" } },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "command": "scripts/run.py {{args}}",
+  "timeout_seconds": 0,
+  "interactive": false
+}

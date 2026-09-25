@@ -1,0 +1,62 @@
+appId: com.5nx.anas
+productName: Anas
+directories:
+  output: release-build
+  buildResources: build
+files:
+  - out/main/**
+  - out/preload/**
+  - out/renderer/**
+  - package.json
+  - LICENSE
+  - THIRD_PARTY_NOTICES.md
+  # Monaco and its bundled dependencies are build-time inputs. Ship their
+  # license notices without copying the editor's source and prebuilt bundles.
+  - from: node_modules/monaco-editor
+    to: licenses/monaco-editor
+    filter:
+      - LICENSE
+      - ThirdPartyNotices.txt
+  - from: node_modules/dompurify
+    to: licenses/dompurify
+    filter:
+      - LICENSE
+      - LICENSE-MPL
+  - from: node_modules/marked
+    to: licenses/marked
+    filter:
+      - LICENSE.md
+  - from: node_modules/@langchain/langgraph-sdk/dist/node_modules/.pnpm
+    to: node_modules/@langchain/langgraph-sdk/dist/node_modules/.pnpm
+    filter:
+      - "**/*"
+asar: true
+# Native preparation is owned by this hook for every package target. Do not
+# use beforeBuild=false: that also bypasses production dependency collection.
+npmRebuild: false
+beforePack: ./scripts/prepare-native-dependencies.cjs
+asarUnpack:
+  - node_modules/@vscode/ripgrep-*/bin/**
+  - node_modules/node-pty/**
+extraResources:
+  - from: data
+    to: data
+    filter:
+      - "**/*"
+      - "!**/__pycache__/**"
+      - "!**/*.pyc"
+      - "!**/*.pyo"
+  - from: build/icon.png
+    to: icon.png
+mac:
+  icon: build/icon.icns
+  # Daily builds stay local, even when a developer certificate is installed.
+  identity: "-"
+  hardenedRuntime: false
+  timestamp: none
+  notarize: false
+win:
+  icon: build/icon.ico
+  artifactName: ${productName}-${version}-${arch}.${ext}
+linux:
+  artifactName: ${productName}.${ext}
