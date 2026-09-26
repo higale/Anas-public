@@ -34,7 +34,7 @@ function composerProps(): ComponentProps<typeof ChatComposer> {
 }
 
 describe('composer draft locking', () => {
-  it('sends the typed draft on Enter and applies suggestions only on click', async () => {
+  it('sends the typed draft on Enter until keyboard focus enters the suggestions', async () => {
     const user = userEvent.setup()
     const send = vi.fn()
     const dismiss = vi.fn()
@@ -51,7 +51,7 @@ describe('composer draft locking', () => {
     render(<Harness />)
     const input = screen.getByRole('textbox')
     await user.click(input)
-    await user.keyboard('{ArrowDown}{ArrowUp}{Enter}')
+    await user.keyboard('{Enter}')
     expect(send).toHaveBeenCalledExactlyOnceWith('duck')
     expect(input).toHaveValue('duck')
     await user.tab()
@@ -64,9 +64,165 @@ describe('composer draft locking', () => {
     expect(send).toHaveBeenCalledTimes(1)
     await user.keyboard('{Escape}')
     expect(dismiss).toHaveBeenCalledOnce()
-    await user.click(screen.getByRole('button', { name: 'duckduckgo' }))
+    await user.click(screen.getByRole('option', { name: 'duckduckgo' }))
     expect(input).toHaveValue('duckduckgo')
     expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it('selects suggestions with arrows while retaining native text focus', async () => {
+    const user = userEvent.setup()
+    const props = composerProps()
+    const send = vi.fn()
+    const dismiss = vi.fn()
+    function Harness() {
+      const [input, setInput] = useState('duck')
+      const onKeyDown = useComposerKeyDown({ showComposerSuggestions: true,
+        dismissComposerSuggestions: dismiss, handleInputChange: setInput,
+        sendCurrentMessage: () => { send(input) } })
+      return <ChatComposer {...props} input={input} onChangeInput={setInput} onKeyDown={onKeyDown}
+        showSuggestions suggestions={['duck one', 'duck two', 'duck three'].map((text) => ({
+          id: text, kind: 'history', text
+        }))} onApplySuggestion={(suggestion) => setInput(suggestion.text)} />
+    }
+    render(<Harness />)
+    const input = screen.getByRole('textbox')
+    const first = screen.getByRole('option', { name: 'duck one' })
+    const second = screen.getByRole('option', { name: 'duck two' })
+    const last = screen.getByRole('option', { name: 'duck three' })
+    await user.click(input)
+    await user.keyboard('{ArrowDown}')
+    expect(first).toHaveAttribute('aria-selected', 'true')
+    expect(input).toHaveFocus()
+    expect(input).toHaveAttribute('aria-activedescendant', first.id)
+    expect(input).toHaveValue('duck')
+    await user.keyboard('{ArrowDown}')
+    expect(second).toHaveAttribute('aria-selected', 'true')
+    expect(input).toHaveFocus()
+    expect(input).toHaveAttribute('aria-activedescendant', second.id)
+    await user.keyboard('{ArrowUp}')
+    expect(first).toHaveAttribute('aria-selected', 'true')
+    expect(input).toHaveFocus()
+    expect(input).toHaveAttribute('aria-activedescendant', first.id)
+    await user.keyboard('{ArrowUp}')
+    expect(last).toHaveAttribute('aria-selected', 'true')
+    expect(input).toHaveFocus()
+    expect(input).toHaveAttribute('aria-activedescendant', last.id)
+    await user.keyboard('{ArrowDown}')
+    expect(first).toHaveAttribute('aria-selected', 'true')
+    expect(input).toHaveFocus()
+    expect(input).toHaveAttribute('aria-activedescendant', first.id)
+    await user.keyboard('{Escape}')
+    expect(input).toHaveFocus()
+    expect(dismiss).not.toHaveBeenCalled()
+    await user.keyboard('{ArrowUp}')
+    expect(last).toHaveAttribute('aria-selected', 'true')
+    expect(input).toHaveFocus()
+    expect(input).toHaveAttribute('aria-activedescendant', last.id)
+    await user.click(input)
+    expect(input).toHaveFocus()
+    await user.keyboard('x')
+    expect(input).toHaveValue('duckx')
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
+    expect(input).toHaveValue('duck two')
+    expect(input).toHaveFocus()
+    expect(send).not.toHaveBeenCalled()
+    await user.keyboard('{Enter}')
+    expect(send).toHaveBeenCalledExactlyOnceWith('duck two')
+  })
+
+  it.each([
+    ['letters', 'xy', 'duckxy'],
+    ['space', ' ', 'duck '],
+    ['uppercase', '{Shift>}A{/Shift}', 'duckA'],
+    ['backspace', '{Backspace}', 'duc'],
+    ['caret movement', '{ArrowLeft}x', 'ducxk'],
+    ['select all', '{Control>}a{/Control}x', 'x'],
+    ['newline', '{Shift>}{Enter}{/Shift}x', 'duck\nx']
+  ])('resumes native editing for %s without applying or sending a suggestion', async (_name, keys, expected) => {
+    const user = userEvent.setup()
+    const props = composerProps()
+    const send = vi.fn()
+    function Harness() {
+      const [input, setInput] = useState('duck')
+      const onKeyDown = useComposerKeyDown({ showComposerSuggestions: true,
+        dismissComposerSuggestions: vi.fn(), handleInputChange: setInput, sendCurrentMessage: send })
+      return <ChatComposer {...props} input={input} onChangeInput={setInput} onKeyDown={onKeyDown}
+        showSuggestions suggestions={[{ id: 'one', kind: 'history', text: 'duck one' }]} />
+    }
+    render(<Harness />)
+    const input = screen.getByRole('textbox')
+    await user.click(input)
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('option')).toHaveAttribute('aria-selected', 'true')
+    await user.keyboard(keys)
+    expect(input).toHaveValue(expected)
+    expect(input).toHaveFocus()
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+    expect(screen.getByRole('option')).toHaveAttribute('aria-selected', 'false')
+    expect(props.onApplySuggestion).not.toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('preserves the caret and selection when pasting or starting IME composition from suggestion selection', async () => {
+    const user = userEvent.setup()
+    const props = composerProps()
+    const send = vi.fn()
+    function Harness() {
+      const [input, setInput] = useState('duck')
+      const onKeyDown = useComposerKeyDown({ showComposerSuggestions: true,
+        dismissComposerSuggestions: vi.fn(), handleInputChange: setInput, sendCurrentMessage: send })
+      return <ChatComposer {...props} input={input} onChangeInput={setInput} onKeyDown={onKeyDown}
+        showSuggestions suggestions={[{ id: 'one', kind: 'history', text: 'duck one' }]} />
+    }
+    render(<Harness />)
+    const input = screen.getByRole<HTMLTextAreaElement>('textbox')
+    await user.click(input)
+    input.setSelectionRange(1, 3)
+    await user.keyboard('{ArrowDown}')
+    expect(input.selectionStart).toBe(1)
+    expect(input.selectionEnd).toBe(3)
+    await user.paste('中文')
+    expect(input).toHaveValue('d中文k')
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+    await user.keyboard('{ArrowDown}')
+    fireEvent.compositionStart(input)
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+    fireEvent.keyDown(input, { key: 'ArrowDown', isComposing: true })
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 })
+    fireEvent.input(input, { target: { value: 'd中文输入k' }, inputType: 'insertCompositionText', isComposing: true })
+    fireEvent.compositionEnd(input, { data: '输入' })
+    expect(input).toHaveValue('d中文输入k')
+    expect(input).toHaveFocus()
+    expect(props.onApplySuggestion).not.toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('keeps arrow keys in the input during composition, modified navigation, locking or absent suggestions', async () => {
+    const user = userEvent.setup()
+    const props = composerProps()
+    props.showSuggestions = true
+    props.suggestions = [{ id: 'one', kind: 'history', text: 'one' }]
+    const { rerender } = render(<ChatComposer {...props} />)
+    const input = screen.getByRole('textbox')
+    await user.click(input)
+    fireEvent.keyDown(input, { key: 'ArrowDown', isComposing: true })
+    expect(input).toHaveFocus()
+    await user.keyboard('{Shift>}{ArrowUp}{/Shift}{Control>}{ArrowDown}{/Control}')
+    expect(input).toHaveFocus()
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+    rerender(<ChatComposer {...props} submissionBusy />)
+    await user.keyboard('{ArrowDown}{ArrowUp}')
+    expect(input).toHaveFocus()
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+    rerender(<ChatComposer {...props} showSuggestions={false} />)
+    await user.keyboard('{ArrowDown}{ArrowUp}')
+    expect(input).toHaveFocus()
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+    rerender(<ChatComposer {...props} suggestions={[]} />)
+    await user.keyboard('{ArrowDown}{ArrowUp}')
+    expect(input).toHaveFocus()
+    expect(input).not.toHaveAttribute('aria-activedescendant')
   })
 
   it.each(['model', 'preset'] as const)('locks the %s menu during submission then allows changes while the conversation runs', async (menu) => {

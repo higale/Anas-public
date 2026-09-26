@@ -1,5 +1,5 @@
 import { PopoverContent } from '../PopoverContent'
-import type { CSSProperties, RefObject } from 'react'
+import { useEffect, useRef, type CSSProperties, type RefObject } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { History, Star, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,8 @@ function compactInputPreview(text: string, maxLength = 96): string {
 
 interface ComposerSuggestionsProps {
   formRef: RefObject<HTMLFormElement | null>
+  id: string
+  activeIndex: number
   showSuggestions: boolean
   suggestions: ComposerSuggestion[]
   onApplySuggestion: (suggestion: ComposerSuggestion) => void
@@ -22,6 +24,8 @@ interface ComposerSuggestionsProps {
 
 export function ComposerSuggestions({
   formRef,
+  id,
+  activeIndex,
   showSuggestions,
   suggestions,
   onApplySuggestion,
@@ -29,12 +33,20 @@ export function ComposerSuggestions({
   onToggleSuggestionPinned
 }: ComposerSuggestionsProps) {
   const { t } = useTranslation()
+  const activeButton = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (showSuggestions) activeButton.current?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, showSuggestions, suggestions])
 
   if (!showSuggestions) return null
 
   return (
     <Popover.Portal>
       <PopoverContent
+        id={id}
+        role="listbox"
+        aria-label={t('settings.skill_shortcut')}
         className="composer-suggestions ui-popover ui-list"
         side="top"
         align="center"
@@ -46,13 +58,18 @@ export function ComposerSuggestions({
             : 'min(720px, calc(100vw - 32px))'
         } as CSSProperties}
         onOpenAutoFocus={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
       >
-        {suggestions.map((suggestion) => (
+        {suggestions.map((suggestion, index) => (
           <div
-            className="composer-suggestion ui-list-item"
+            className={`composer-suggestion ui-list-item${index === activeIndex ? ' ui-list-item-active' : ''}`}
             key={suggestion.id}
           >
             <NoFocusButton
+              id={`${id}-${index}`}
+              role="option"
+              aria-selected={index === activeIndex}
+              ref={index === activeIndex ? activeButton : undefined}
               className="composer-suggestion-apply"
               type="button"
               onClick={() => onApplySuggestion(suggestion)}

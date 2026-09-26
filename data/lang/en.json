@@ -6,6 +6,7 @@
     "inactive": "Inactive",
     "other_tools": "Other tools",
     "other_skills": "Other skills",
+    "remove_missing_skill": "Remove missing skill",
     "tool_not_selected": "This tool is not enabled in the current project's capabilities.",
     "environment_hint": "Inject application .env variables into this Agent's shell processes. Does not change shared MCP server environments.",
     "skill_selection": "Skill selection",

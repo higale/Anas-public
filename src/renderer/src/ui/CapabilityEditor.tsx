@@ -2,7 +2,7 @@ import { setAllCustomTools, withToolShadows } from '@shared/toolPackages'
 import { SubagentSelectionEditor, type SubagentSelectionProps } from './SubagentSelectionEditor'
 import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, Folder, Plug } from 'lucide-react'
+import { ChevronRight, Folder, Plug, Trash2 } from 'lucide-react'
 import { builtinToolCatalog, runtimeToolSelectionId } from '@shared/toolRegistry'
 import { mcpServerSelection, removeEmptyMissingMcpSelections, setMcpServerMode, setMcpToolSelection, resolveSkillSelection, setToolSelection, toolAllowed, toolSelected, type AgentCapabilities } from '@shared/agentCapabilities'
 import type { McpServerConfigDetail, McpToolStatus, RuntimeToolStatus, SkillSnapshot } from '@shared/types'
@@ -10,7 +10,7 @@ import { CheckboxField } from './CheckboxField'
 import { SearchableOptionPicker } from './SearchableOptionPicker'
 import { SettingsStatusIndicator } from './settings/SettingsStatusIndicator'
 import { skillSourceGroups } from './skillSourceGroups'
-import { UI_ICON_SIZE_MEDIUM } from './uiConstants'
+import { UI_ICON_SIZE_MEDIUM, UI_ICON_SIZE_SMALL } from './uiConstants'
 
 const capabilityGroupOrder = [
   'profile', 'environment', 'workspace', 'applicationEnvironment',
@@ -109,7 +109,7 @@ export function CapabilityEditor({ customTools = [], value: storedValue, skills,
   const skillRootIds = new Set(skills?.roots.map((root) => root.id))
   const missingSkills = [
     ...visibleSkills.filter((skill) => !skillRootIds.has(skill.rootId)).map((skill) => ({ ...skill, unavailable: true })),
-    ...value.skills.entries.filter((entry) => !skills?.skills.some((skill) => skill.id === entry.id)).map((entry) => ({ id: entry.id, name: entry.id, description: entry.id, unavailable: true }))
+    ...value.skills.entries.filter((entry) => !skills?.skills.some((skill) => skill.id === entry.id)).map((entry) => ({ id: entry.id, name: entry.id, description: entry.id, unavailable: true, missing: Boolean(skills) }))
   ]
   const matchesSkillQuery = (skill: { name: string }) => skill.name.toLowerCase().includes(query.toLowerCase())
   const projectSkillsSelected = subagent && value.skills.enabled && value.skills.mode === 'custom' && value.skills.project
@@ -122,9 +122,18 @@ export function CapabilityEditor({ customTools = [], value: storedValue, skills,
     const current = value.skills.entries.find((entry) => entry.id === id) ?? { id, shortcut: false, model: false }
     onChange({ ...value, skills: { ...value.skills, entries: [...entries, { ...current, [key]: enabled }] } })
   }
-  function renderSkill(skill: { id: string; name: string; description: string; unavailable: boolean }) {
+  function renderSkill(skill: { id: string; name: string; description: string; unavailable: boolean; missing?: boolean }) {
     return <div className="ui-capability-skill" key={skill.id}>
-      <span className="ui-row"><code className="ui-truncate" data-tooltip={skill.description}>{skill.name}</code>{skill.unavailable && <span className="ui-badge">{t('capabilities.inactive')}</span>}</span>
+      <span className="ui-row">
+        <code className="ui-truncate" data-tooltip={skill.description}>{skill.name}</code>
+        {skill.unavailable && <span className="ui-badge">{t('capabilities.inactive')}</span>}
+        {skill.missing && <button type="button" className="ui-icon-button"
+          aria-label={`${t('capabilities.remove_missing_skill')}: ${skill.name}`}
+          data-tooltip={t('capabilities.remove_missing_skill')}
+          onClick={() => onChange({ ...value, skills: { ...value.skills, entries: value.skills.entries.filter((entry) => entry.id !== skill.id) } })}>
+          <Trash2 size={UI_ICON_SIZE_SMALL} />
+        </button>}
+      </span>
       {!subagent && <CheckboxField className="ui-checkbox-field-inline" checked={selectedSkills.get(skill.id)?.shortcut ?? false} label={t('capabilities.shortcut')} aria-label={`${skill.name} ${t('capabilities.shortcut')}`} onChange={(checked) => setSkill(skill.id, 'shortcut', checked)} />}
       <CheckboxField className="ui-checkbox-field-inline" checked={selectedSkills.get(skill.id)?.model ?? false} label={subagent ? '' : t('capabilities.model')} aria-label={`${skill.name} ${t('capabilities.model')}`} onChange={(checked) => setSkill(skill.id, 'model', checked)} />
     </div>

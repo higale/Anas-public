@@ -6,6 +6,7 @@
     "inactive": "已停用",
     "other_tools": "其他工具",
     "other_skills": "其他技能",
+    "remove_missing_skill": "移除失效技能",
     "tool_not_selected": "当前项目的能力设置未启用此工具。",
     "environment_hint": "向此 Agent 的 Shell 进程注入应用 .env 变量，不改变共享 MCP 服务器的环境配置。",
     "skill_selection": "技能选择",

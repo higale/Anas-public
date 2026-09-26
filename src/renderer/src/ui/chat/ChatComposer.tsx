@@ -1,4 +1,4 @@
-import type { DragEvent, FormEvent, KeyboardEvent, RefObject } from 'react'
+import { useId, useState, type DragEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { MessageCircle, Plus, Send, Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -142,6 +142,8 @@ export function ChatComposer({
   onToggleSuggestionPinned
 }: ChatComposerProps) {
   const { t } = useTranslation()
+  const suggestionsId = useId()
+  const [suggestionSelection, setSuggestionSelection] = useState<{ id: string; input: string }>()
   const mainModelSelectable = Boolean(config?.defaultModel && isSelectableModelConfig(config.defaultModel))
   const visionBlocked = Boolean(
     attachments.some((attachment) => attachment.kind === 'image')
@@ -154,6 +156,14 @@ export function ChatComposer({
     locked && !(run?.operation === 'agent' && run.status === 'running')
   )
   const modelSelectionLocked = submissionBusy
+  const activeSuggestionIndex = showSuggestions && !messageDraftLocked && suggestionSelection?.input === input
+    ? suggestions.findIndex((suggestion) => suggestion.id === suggestionSelection.id)
+    : -1
+  const applySuggestion = (suggestion: ComposerSuggestion): void => {
+    setSuggestionSelection(undefined)
+    inputRef.current?.focus()
+    onApplySuggestion(suggestion)
+  }
   const sendLabel = generationBusy
     ? t('chat.stop')
     : visionBlocked
@@ -237,11 +247,40 @@ export function ChatComposer({
               data-max-height="150"
               data-min-rows="1"
               readOnly={messageDraftLocked}
+              aria-controls={showSuggestions ? suggestionsId : undefined}
+              aria-activedescendant={activeSuggestionIndex >= 0 ? `${suggestionsId}-${activeSuggestionIndex}` : undefined}
+              aria-autocomplete="list"
               value={input}
               onInput={onAutosizeInput}
-              onChange={(event) => onChangeInput(event.target.value)}
+              onChange={(event) => {
+                setSuggestionSelection(undefined)
+                onChangeInput(event.target.value)
+              }}
+              onClick={() => setSuggestionSelection(undefined)}
+              onBlur={() => setSuggestionSelection(undefined)}
+              onCompositionStart={() => setSuggestionSelection(undefined)}
               onKeyDown={(event) => {
-                if (!messageDraftLocked) onKeyDown(event)
+                if (messageDraftLocked) return
+                if (event.nativeEvent.isComposing || event.keyCode === 229) return
+                const unmodified = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+                if (showSuggestions && suggestions.length > 0 && unmodified) {
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    const nextIndex = activeSuggestionIndex < 0
+                      ? (event.key === 'ArrowDown' ? 0 : suggestions.length - 1)
+                      : (activeSuggestionIndex + (event.key === 'ArrowDown' ? 1 : -1) + suggestions.length) % suggestions.length
+                    setSuggestionSelection({ id: suggestions[nextIndex].id, input })
+                    return
+                  }
+                  if (activeSuggestionIndex >= 0 && (event.key === 'Enter' || event.key === 'Escape')) {
+                    event.preventDefault()
+                    if (event.key === 'Enter') applySuggestion(suggestions[activeSuggestionIndex])
+                    else setSuggestionSelection(undefined)
+                    return
+                  }
+                }
+                if (!['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) setSuggestionSelection(undefined)
+                onKeyDown(event)
               }}
               placeholder={simpleChatEnabled
                 ? t('chat.simple_message_placeholder')
@@ -329,9 +368,11 @@ export function ChatComposer({
           </Popover.Anchor>
           <ComposerSuggestions
             formRef={formRef}
+            id={suggestionsId}
+            activeIndex={activeSuggestionIndex}
             showSuggestions={showSuggestions}
             suggestions={suggestions}
-            onApplySuggestion={onApplySuggestion}
+            onApplySuggestion={applySuggestion}
             onRemoveSuggestion={onRemoveSuggestion}
             onToggleSuggestionPinned={onToggleSuggestionPinned}
           />

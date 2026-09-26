@@ -13,6 +13,22 @@ function Harness({ subagent = false, onChange = vi.fn(), mcpStatus, initial }: {
   return <CapabilityEditor value={value} skills={skills} subagent={subagent} mcpStatus={mcpStatus} onChange={(next) => { setValue(next); onChange(next) }} />
 }
 describe('shared capability editor', () => {
+  it.each([false, true])('removes stale skill selections regardless of checked state in subagent mode %s', async (subagent) => {
+    const retained = { id: skills.skills[0].id, shortcut: true, model: false }
+    const entries = [retained, { id: 'deleted:off', shortcut: false, model: false }, { id: 'deleted:on', shortcut: true, model: true }]
+    const onChange = vi.fn()
+    render(<Harness subagent={subagent} onChange={onChange} initial={{ ...structuredClone(defaultCapabilities),
+      skills: { enabled: true, mode: 'custom', project: true, entries } }} />)
+
+    for (const id of ['deleted:off', 'deleted:on']) {
+      await userEvent.click(screen.getByRole('button', { name: `capabilities.remove_missing_skill: ${id}` }))
+      expect(screen.queryByText(id)).toBeNull()
+    }
+    expect(screen.queryByText('capabilities.other_skills')).toBeNull()
+    expect(onChange.mock.lastCall?.[0].skills).toEqual({ enabled: true, mode: 'custom', project: true, entries: [retained] })
+    expect(screen.queryByRole('button', { name: /capabilities.remove_missing_skill/ })).toBeNull()
+  })
+
   it.each([false, true])('controls user input independently in subagent mode %s', async (subagent) => {
     const onChange = vi.fn()
     render(<Harness subagent={subagent} onChange={onChange} />)
@@ -211,7 +227,10 @@ describe('shared capability editor', () => {
     }
     const { rerender } = render(<MissingSkills />)
     expect(screen.getByRole('checkbox', { name: 'deleted:skill capabilities.model' })).toBeChecked()
+    expect(screen.queryByRole('button', { name: /capabilities.remove_missing_skill/ })).toBeNull()
     rerender(<MissingSkills snapshot={fixture} />)
+    expect(screen.getAllByRole('button', { name: /capabilities.remove_missing_skill/ })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'capabilities.remove_missing_skill: deleted:skill' })).toBeEnabled()
     expect(screen.getByText('settings.skill_group_user').closest('.ui-form-section')).toContainElement(screen.getByText('broken'))
     expect(onChange).not.toHaveBeenCalled()
     for (const name of ['broken', 'orphan', 'deleted:skill']) {

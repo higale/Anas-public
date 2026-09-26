@@ -4,6 +4,49 @@ const { tmpdir } = require('node:os')
 const { join } = require('node:path')
 const { expect } = require('playwright/test')
 
+async function verifyMissingProjectSkills(page) {
+  const result = await page.evaluate(async () => {
+    const project = (await globalThis.gale.projects.list()).find(item => item.id === 'default-workspace')
+    return globalThis.gale.projects.update(project.id, { ...project, advancedSettings: true,
+      capabilities: { ...project.capabilities, skills: { enabled: true, mode: 'custom', project: false, entries: [
+        { id: 'project-deleted:unchecked-skill', shortcut: false, model: false },
+        { id: 'project-deleted:selected-skill', shortcut: true, model: true }
+      ] } } })
+  })
+  assert.equal(result.status, 'ok')
+  await page.getByRole('button', { name: 'Back to app', exact: true }).click()
+  await page.reload()
+  const dialog = page.locator('.project-dialog')
+  const openProject = async () => {
+    await page.locator('.project-thread-group[data-default-workspace] .project-thread-more').click()
+    await page.locator('.project-details-action').filter({ hasText: 'Edit' }).click()
+    await expect(dialog).toBeVisible()
+  }
+  const savedEntries = () => page.evaluate(async () =>
+    (await globalThis.gale.projects.list()).find(item => item.id === 'default-workspace').capabilities.skills.entries)
+  await openProject()
+  const removeUnchecked = dialog.getByRole('button', { name: 'Remove missing skill: project-deleted:unchecked-skill', exact: true })
+  await removeUnchecked.scrollIntoViewIfNeeded()
+  if (process.env.ANAS_E2E_MISSING_SKILLS_SCREENSHOT) await dialog.screenshot({ path: process.env.ANAS_E2E_MISSING_SKILLS_SCREENSHOT })
+  await removeUnchecked.click()
+  await expect(dialog.getByText('project-deleted:unchecked-skill', { exact: true })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  const retained = [{ id: 'project-deleted:selected-skill', shortcut: true, model: true }]
+  await expect.poll(savedEntries).toEqual(retained)
+  await openProject()
+  const removeSelected = dialog.getByRole('button', { name: 'Remove missing skill: project-deleted:selected-skill', exact: true })
+  await removeSelected.click()
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  assert.deepEqual(await savedEntries(), retained)
+  await openProject()
+  await removeSelected.click()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(savedEntries).toEqual([])
+}
+
 async function verifyDefaultCapabilities(launchApplication) {
   const home = await mkdtemp(join(tmpdir(), 'anas-default-capabilities-'))
   let application
@@ -51,10 +94,13 @@ async function verifyDefaultCapabilities(launchApplication) {
     assert.deepEqual(previews.project, original.project)
     assert.deepEqual(previews.subagents, original.subagents)
     if (process.env.ANAS_E2E_CAPABILITIES_SCREENSHOT) await page.screenshot({ path: process.env.ANAS_E2E_CAPABILITIES_SCREENSHOT })
+    await verifyMissingProjectSkills(page)
     await application.close()
     application = await launchApplication(home)
     page = await application.firstWindow()
     await page.locator('[data-agent-composer-input]').waitFor()
+    assert.deepEqual(await page.evaluate(async () =>
+      (await globalThis.gale.projects.list()).find(item => item.id === 'default-workspace').capabilities.skills.entries), [])
     await page.locator('.sidebar-settings').click()
     await page.locator('.app-menu-item').first().click()
     await page.locator('[data-settings-tab="capabilities"]').click()
